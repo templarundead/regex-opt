@@ -1,0 +1,115 @@
+<html><head><meta http-equiv="Content-type" content="text/html; charset=iso-8859-1">
+ <title>Perl-compatible regular expression optimizer</title>
+ <style type="text/css"><!--
+TABLE.toc {border:0px}
+A:link,A:visited{text-decoration:none;color:#2A3B83}
+A:hover{text-decoration:underline;color:#002040}
+A:active{text-decoration:underline;color:#004060;background:#CCD8FF}
+TD.toc   {font-size:80%; font-family:Tahoma; text-align:left}
+H1       {font-size:250%; font-weight:bold} .level1 {text-align:center}
+H2       {font-size:200%; font-weight:bold} .level2 {margin-left:1%}
+H3       {font-size:160%; font-weight:bold} .level3 {margin-left:2%}
+H4       {font-size:145%; font-weight:bold} .level4 {margin-left:3%}
+H5       {font-size:130%; font-weight:bold} .level5 {margin-left:4%}
+H6       {font-size:110%; font-weight:bold} .level5 {margin-left:5%}
+BODY{background:white;color:black}
+CODE{font-family:lucida console,courier new,courier;color:#105000}
+PRE.smallerpre{font-family:lucida console,courier new,courier;font-size:80%;color:#500010;margin-left:30px}
+SMALL    {font-size:70%}
+--></style></head>
+ <body>
+  <h1>Perl-compatible regular expression optimizer</h1>
+  <h2 class=level2> 0. Contents </h2>
+  
+  This is the documentation of regex-opt-1.0.0.
+<div class=toc><table cellspacing=0 cellpadding=0 class=toc><tr><td width="50%" valign=middle align=left nowrap class=toc>&nbsp;&nbsp;&nbsp;1. <a href="#h0">Purpose</a><br>&nbsp;&nbsp;&nbsp;2. <a href="#h1">Usage</a><br>&nbsp;&nbsp;&nbsp;3. <a href="#h2">Supported syntax</a><br>&nbsp;&nbsp;&nbsp;4. <a href="#h3">Unsupported syntax</a><br></td>
+<td width="50%" valign=middle align=left nowrap class=toc>&nbsp;&nbsp;&nbsp;5. <a href="#h4">Optimizations performed</a><br>&nbsp;&nbsp;&nbsp;6. <a href="#h5">Optimizations not performed</a><br>&nbsp;&nbsp;&nbsp;7. <a href="#h6">Copying</a><br>&nbsp;&nbsp;&nbsp;8. <a href="#h7">Requirements</a><br>&nbsp;&nbsp;&nbsp;9. <a href="#download">Downloading</a><br></td>
+</tr></table></div><H2 id="h0" class="level2"><a name="h0"></a>1. Purpose</H2><div class="level2" id="divh0">
+
+Optimizes perl-compatible regular expressions.
+
+</div><H2 id="h1" class="level2"><a name="h1"></a>2. Usage</H2><div class="level2" id="divh1">
+
+The general syntax for running the program is:
+<code>regex-opt &lt;regexp></code>
+<p>
+Example:<br>
+<code>regex-opt 'xaz|xbz|xcz'<br>
+x[a-c]z</code>
+<p>
+
+Try running regex-opt on
+<a href="http://www.foad.org/%7Eabigail/">Abigail</a>'s 7 kilobyte
+<a href="http://www.foad.org/~abigail/Perl/url3.regex">URL regexp</a>.
+The result should be about 5 kilobytes long.
+
+
+</div><H2 id="h2" class="level2"><a name="h2"></a>3. Supported syntax</H2><div class="level2" id="divh2">
+
+<ul>
+ <li>* (repeat 0-inf)</li>
+ <li>+ (repeat 1-inf)</li>
+ <li>? (repeat 0-1)</li>
+ <li>{n} (repeat n)</li>
+ <li>{,n} (repeat 0-n)</li>
+ <li>{n,} (repeat n-inf)</li>
+ <li>{n,m} (repeat n-m)</li>
+ <li>. (accept any char except \n)</li>
+ <li>[a-z] (character sets)</li>
+ <li>[^a-z] (inverse character sets)</li>
+ <li>[[:alpha:]] (character classes)</li>
+ <li>\s (and other character classes and escapes)</li>
+ <li>x|y (alternatives)</li>
+ <li>(?:x|y) (non-capturing grouping)</li>
+ <li>*? (non-greedy repeat)</li>
+</ul>
+ 
+</div><H2 id="h3" class="level2"><a name="h3"></a>4. Unsupported syntax</H2><div class="level2" id="divh3">
+
+<ul>
+ <li>^ (match string-begin)</li>
+ <li>$ (match string-end)</li>
+ <li>() (capturing is converted to noncapturing)</li>
+ <li>Any (? -command that is not mentioned in supported syntax</li>
+ <li>Unicode-specific markup</li>
+</ul>
+
+</div><H2 id="h4" class="level2"><a name="h4"></a>5. Optimizations performed</H2><div class="level2" id="divh4">
+
+<ul>
+ <li>Character set optimization: [A-Zabcdefgh-yz0-9%] becomes [[:alnum:]%]</li>
+ <li>Alternate characters: y|[yp]|[zx] becomes [px-z]</li>
+ <li>Counting: aaa* and aa+ become a{2,}</li>
+ <li>Combining: abcde|xycde becomes (?:ab|xy)cde</li>
+ <li>Parenthesis reduction: ((abc)) becomes abc, (xx|yy)|zz becomes xx|yy|zz</li>
+ <li>Compression: xyzyzxyzyz becomes (?:x(?:yz){2}){2}</li>
+</ul>
+
+</div><H2 id="h5" class="level2"><a name="h5"></a>6. Optimizations not performed</H2><div class="level2" id="divh5">
+
+<ul>
+ <li>Choice counting: aab|ab becomes (?:aa|a)b, not a{1,2}b</li>
+</ul>
+
+</div><H2 id="h6" class="level2"><a name="h6"></a>7. Copying</H2><div class="level2" id="divh6">
+
+regex-opt has been written by Joel Yliluoma, a.k.a.
+<a href="http://iki.fi/bisqwit/">Bisqwit</a>,<br>
+and is distributed under the terms of the
+<a href="http://www.gnu.org/licenses/licenses.html#GPL">General Public License</a> (GPL).
+
+</div><H2 id="h7" class="level2"><a name="h7"></a>8. Requirements</H2><div class="level2" id="divh7">
+
+For compiling you need the following GNU tools: g++, make.<br>
+
+</div><H2 id="download" class="level2"><a name="download"></a>9. Downloading</H2><div class="level2" id="divdownload">
+   The official home page of regex-opt
+   is at <a href="http://iki.fi/bisqwit/source/regex-opt.html">http://iki.fi/bisqwit/source/regex-opt.html</a>.<br>
+   Check there for new versions.
+</div> <p align=right><small>Generated from
+       <tt>progdesc.php</tt> (last updated: Mon, 12 Jul 2004 20:33:53 +0300)<br>
+  with <tt>docmaker.php</tt> (last updated: Sun,  9 May 2004 04:55:44 +0300)<br>
+  at Mon, 12 Jul 2004 20:34:07 +0300</small>
+ </p>
+</body>
+</html>

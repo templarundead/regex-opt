@@ -1,0 +1,25 @@
+INSTALL=install
+CC=gcc
+CXX=g++
+
+CPP=$(CC)
+LDFLAGS=-g
+#LDLIBS=-lstdc++
+
+CWARNINGS=-Wall -W -pipe -g \
+    -Wundef \
+    -Wcast-qual -Wcast-align -Wwrite-strings -Wstrict-prototypes \
+    -Wmissing-prototypes -Winline
+#   -Wtraditional  -fmessage-length=128
+
+CXXFLAGS=-pedantic -ffast-math $(CWARNINGS)
+#CFLAGS=-O3 -fomit-frame-pointer -ffast-math $(CWARNINGS)
+CFLAGS=-O -g $(CWARNINGS)
+
+CPPFLAGS=-DVERSION=\"$(VERSION)\" \
+         -DCONFIG=\"$(CFGDIR)/$(CFGFILE)\" \
+         -DBINDIR=\"$(BINDIR)\" $(DEFS)
+
+DEPFUN_INSTALL=bin
+
+# -Wredundant-decls -- glibc activates this a lot, so we better not use it
