@@ -51,7 +51,7 @@ public:
     inline const bool operator! () const { return !p; }
     
     // Act like if you were a pointer (for comparisons etc)
-    inline operator T *() const { return p; }
+    inline operator T* () const { return p; }
     inline const bool operator< (const autoptr &a) const { return p < a.p; }
     
     // Dereferencing

@@ -18,7 +18,7 @@ OPTIM=-O3
 
 CPPFLAGS += -I.
 
-VERSION=1.0.0
+VERSION=1.1.0
 ARCHFILES=COPYING Makefile.sets progdesc.php \
           regex.cc \
           autoptr

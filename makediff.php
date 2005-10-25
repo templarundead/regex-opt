@@ -19,12 +19,14 @@ function ShellFix($s)
   return "'".str_replace("'", "'\''", $s)."'";
 }
 
-if($REMOTE_ADDR)
+if(isset($REMOTE_ADDR))
 {
   header('Content-type: text/plain');
   readfile($PHP_SELF);
   exit;
 }
+
+error_reporting(E_ALL & ~E_NOTICE);
 
 ob_implicit_flush(true);
 

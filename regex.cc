@@ -774,7 +774,8 @@ static const choices Parse(const string& s, unsigned& pos)
                 }
                 if(s[pos+1]=='?')
                 {
-                    throw "Unexpected '?' escape";
+                    std::string escape = s.substr(pos,3);
+                    throw std::string("Unexpected '?' escape \"") + escape + "\"";
                 }
                 struct item ch;
                 ++pos;
@@ -1183,9 +1184,15 @@ int main(int argc, const char* const* argv)
     TestSet("a\\143-fh");
 */
 
-    } catch(const char *s)
+    }
+    catch(const char *s)
     {
         cout << "Error: " << s << endl;
+        return -1;
+    }
+    catch(const std::string& s)
+    {
+        cout << "Error: " << s.c_str() << endl;
         return -1;
     }
     return 0;
