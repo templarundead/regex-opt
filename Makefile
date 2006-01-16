@@ -18,10 +18,12 @@ OPTIM=-O3
 
 CPPFLAGS += -I.
 
-VERSION=1.1.0
+VERSION=1.1.1
 ARCHFILES=COPYING Makefile.sets progdesc.php \
           regex.cc \
-          autoptr
+          autoptr \
+          range.hh range.tcc \
+          rangeset.hh rangeset.tcc
 
 PREFIX=/usr/local
 BINDIR=$(PREFIX)/bin

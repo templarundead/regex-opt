@@ -7,7 +7,7 @@
 #include <list>
 
 /* Extended regular expression optimizer */
-/* Copyright (C) 1992,2004 Bisqwit (http://iki.fi/bisqwit/) */
+/* Copyright (C) 1992,2006 Bisqwit (http://iki.fi/bisqwit/) */
 
 using namespace std;
 
@@ -17,6 +17,8 @@ typedef bitset<256> charset;
 
 typedef vector<struct item> sequence;
 typedef list<sequence> choices;
+
+#include "rangeset.hh"
 
 struct item
 {
@@ -46,6 +48,12 @@ struct item
         return ch == b.ch;
     }
     
+    /* - TODO
+    bool is_subset_of(const item& b) const
+    {
+    }
+    */
+    
     bool is_combinable(const item& b) const
     {  
         if(!is_equal(b)) return false;
@@ -72,7 +80,8 @@ struct item
 //    item(const item&);
 };
 
-void DumpTree(const choices& c, bool need_parens=false);
+enum ParensFlag { no_parens=false, yes_parens=true, automatic=2 };
+void DumpTree(const choices& c, ParensFlag need_parens=automatic);
 void DumpSequence(const sequence& s);
 void DumpKey(const charset& s);
 
@@ -88,51 +97,47 @@ static void SumCounts(unsigned& target, unsigned value)
         target += value;
 }
 
-static unsigned EqualBeginSequence(const sequence& a, const sequence& b)
+static unsigned CountEqualSequenceAtBegin(const sequence& a, const sequence& b, unsigned max=0)
 {
-    for(unsigned as = a.size(), bs = b.size(), c=0; ; ++c)
-    {
-        if(c >= as || c >= bs || a[c] != b[c]) return c;
-    }
+    unsigned c=0, as = a.size(), bs = b.size(), ms = std::min(as, bs);
+    if(!max) max=ms; else max = std::min(max, ms);
+    while(c < max && a[c] == b[c]) ++c;
+    return c;
 }
-static unsigned EqualEndSequence(const sequence& a, const sequence& b)
+static unsigned CountEqualSequenceAtEnd(const sequence& a, const sequence& b, unsigned max=0)
 {
-    for(unsigned as = a.size(), bs = b.size(), c=0; ; ++c)
-    {
-        if(c >= as || c >= bs || a[as-c-1] != b[bs-c-1]) return c;
-    }
+    unsigned c=0, as = a.size(), bs = b.size(), ms = std::min(as, bs);
+    if(!max) max=ms; else max = std::min(max, ms);
+    while(c < max && a[as-c-1] == b[bs-c-1]) ++c;
+    return c;
 }
-static bool IsEqualEndSequence(const sequence& a, const sequence& b)
+static bool IsEqualSequenceAtBegin(const sequence& a, const sequence& b, unsigned min_length)
 {
-    return !a.empty() && !b.empty() && *(a.end()-1) == *(b.end()-1);
+    return CountEqualSequenceAtBegin(a, b, min_length) >= min_length;
 }
-static bool IsEqualBeginSequence(const sequence& a, const sequence& b)
+static bool IsEqualSequenceAtEnd(const sequence& a, const sequence& b, unsigned min_length)
 {
-    return !a.empty() && !b.empty() && *a.begin() == *b.begin();
+    return CountEqualSequenceAtEnd(a, b, min_length) >= min_length;
 }
-static const sequence CopyEndSequence(const sequence& a, unsigned n)
+static const sequence CopySequenceFromEnd(const sequence& a, unsigned n)
 {
     sequence result;
-    if(n > a.size()) n = a.size();
-    result.insert(result.end(), a.end()-n, a.end());
+    result.insert(result.end(), a.end() - std::min(n, a.size()), a.end());
     return result;
 }
-static const sequence CopyBeginSequence(const sequence& a, unsigned n)
+static const sequence CopySequenceFromBegin(const sequence& a, unsigned n)
 {
     sequence result;
-    if(n > a.size()) n = a.size();
-    result.insert(result.end(), a.begin(), a.begin()+n);
+    result.insert(result.end(), a.begin(), a.begin() + std::min(n, a.size()));
     return result;
 }
-static void ClipBeginSequence(sequence& a, unsigned n)
+static void RemoveSequenceFromBegin(sequence& a, unsigned n)
 {
-    if(n > a.size()) n = a.size();
-    a.erase(a.begin(), a.begin()+n);
+    a.erase(a.begin(), a.begin() + std::min(a.size(), n));
 }
-static void ClipEndSequence(sequence& a, unsigned n)
+static void RemoveSequenceFromEnd(sequence& a, unsigned n)
 {
-    if(n > a.size()) n = a.size();
-    a.erase(a.end()-n, a.end());
+    a.erase(a.end() - std::min(n, a.size()), a.end());
 }
 
 static void CompressSequence(sequence& seq)
@@ -148,12 +153,14 @@ static void CompressSequence(sequence& seq)
     bool erased=false;
     for(unsigned a=1; a<seq.size(); ++a)
     {
-        if(seq[a].max==0)
+        item& it = seq[a];
+        
+        if(it.max==0)
             erased=true;
-        else if(seq[a].is_equal(seq[prev]))
+        else if(it.is_equal(seq[prev]))
         {
-            SumCounts(seq[prev].min, seq[a].min);
-            SumCounts(seq[prev].max, seq[a].max);
+            SumCounts(seq[prev].min, it.min);
+            SumCounts(seq[prev].max, it.max);
             erased=true;
         }
         else
@@ -168,6 +175,25 @@ static void CompressSequence(sequence& seq)
         seq = result;
     }
 }
+
+static void DeleteEmptyNodesInSequence(sequence& seq)
+{
+    for(unsigned a=0; a<seq.size(); ++a)
+    {
+    redo:
+        item& it = seq[a];
+
+        /* Delete empty nodes like ()? or []+ */
+        if((it.tree  && it.tree->empty())
+        || (!it.tree && !it.ch.any()))
+        {
+            seq.erase(seq.begin()+a);
+            if(a >= seq.size())break;
+            goto redo;
+        }
+    }
+}
+
 static void HeavyCompressSequence(sequence& seq)
 {
     // Convert "abababcd" to "(ab){3}cd"
@@ -238,8 +264,12 @@ static void FlattenSequence(sequence& seq)
             
             result.insert(result.end(), seq2.begin(), seq2.end());
         }
-        else
+        else if(seq[a].max > 0
+             && ((seq[a].tree && seq[a].tree->size() > 0)
+              || (!seq[a].tree && seq[a].ch.any())))
+        {
             result.push_back(seq[a]);
+        }
     }
     seq = result;
 }
@@ -247,10 +277,14 @@ static void FlattenSequence(sequence& seq)
 void OptimizeSequence(sequence& seq)
 {
     for(sequence::iterator i=seq.begin(); i!=seq.end(); ++i)
+    {
         i->Optimize();
-    
+    }
     FlattenSequence(seq);
     CompressSequence(seq);
+    /*
+    DeleteEmptyNodesInSequence(seq);
+    */
 }
 
 static void FlattenTree(choices& tree)
@@ -287,7 +321,16 @@ static void CharsetCombineTree(choices& tree)
         if(seq.size() != 1) continue;
         
         const item& it = seq[0];
-        if(it.tree || it.min != 1 || it.max != 1) continue;
+        if(it.min != 1 || it.max != 1) continue;
+        if(it.tree)
+        {
+            /*if(it.tree->empty())
+            {
+                found_sets = true;
+                tree.erase(i);
+            }*/
+            continue;
+        }
         
         ch |= it.ch;
         found_sets = true;
@@ -317,6 +360,130 @@ static void CharsetCombineTree(choices& tree)
 */
 }
 
+static bool CountingCombineTree(choices& tree)
+{
+    bool did_changes = false;
+    
+    /* For each choice, create a map of how many alternatives
+     * there are for the first item.
+     */
+redo_combine:
+    /*
+    fprintf(stderr, "Attempt CountingCombineTree for '"); fflush(stderr);
+    DumpTree(tree, yes_parens); std::cout << std::flush;
+    fprintf(stderr, "' (%u)\n", tree.size());
+    */
+    
+    for(choices::iterator i=tree.begin(); i!=tree.end(); ++i)
+    {
+        if(i->size() != 1) continue;
+        const item& i_ref = *i->begin();
+        
+        rangeset<unsigned> ranges;
+        
+        /* In rangeset, the "upper" is exclusive.
+         * In choice, the "max" is inclusive.
+         * Therefore, convert.
+         */
+        unsigned i_max = i_ref.max; if(i_max != uinf) ++i_max;
+        ranges.set(i_ref.min, i_max);
+        
+        for(choices::iterator j=tree.begin(); j!=tree.end(); ++j)
+        {
+            if(j->empty())
+            {
+                // If the sequence is empty, it is acceptable to
+                // interpret it as a 0-size sequence of anything
+                ranges.set(0,1);
+                continue;
+            }
+            if(i == j || j->size() != 1) continue;
+            const item& j_ref = *j->begin();
+            
+            if(!i_ref.is_equal(j_ref)) continue;
+            
+            unsigned j_max = j_ref.max; if(j_max != uinf) ++j_max;
+            ranges.set(j_ref.min, j_max);
+        }
+        
+        /* For each of the combined ranges, find each element
+         * that belongs to this particular group. */
+        
+        bool changed = false;
+        for(rangeset<unsigned>::const_iterator
+            ri = ranges.begin(); ri != ranges.end(); ++ri)
+        {
+            unsigned r_min = ri->lower;
+            unsigned r_max = ri->upper; if(r_max != uinf) --r_max;
+
+            bool first = true;
+            bool found_something = false;
+            for(choices::iterator jnext,j=tree.begin(); j!=tree.end(); j=jnext)
+            {
+                jnext=j; ++jnext;
+                
+                if(j->size() != 1)continue;
+                
+                item& j_ref = *j->begin();
+                if(!i_ref.is_equal(j_ref)) continue;
+                
+                /* If this item is entirely swallowed by
+                 * this particular range, assimilate it
+                 */
+                
+                if(j_ref.min >= r_min && j_ref.max <= r_max)
+                {
+                    /*
+                    fprintf(stderr, "Comparing '");
+                    DumpSequence(*i); std::cout << std::flush;
+                    fprintf(stderr, "' with '");
+                    DumpSequence(*j); std::cout << std::flush;
+                    fprintf(stderr, "': (%u,%u) overlaps with r=(%u,%u) (%s)\n",
+                        j_ref.min, j_ref.max,
+                        r_min, r_max, first?"first":"not first");
+                    */
+                    
+                    found_something = true;
+                    
+                    if(first)
+                    {
+                        first = false;
+                        if(j_ref.min == r_min
+                        && j_ref.max == r_max) { continue; /* nothing changed */ }
+                        
+                        /* Update the range and set changed-flag */
+                        j_ref.min = r_min;
+                        j_ref.max = r_max;
+                        changed = true;
+                    }
+                    else
+                    {
+                        /* Delete this item and set changed-flag */
+                        changed = true;
+                        tree.erase(j);
+                    }
+                }
+            }
+            if(r_min == 0 && found_something)
+            {
+                // Then we may delete zero-length sequences
+                for(choices::iterator jnext,j=tree.begin(); j!=tree.end(); j=jnext)
+                {
+                    jnext=j; ++jnext;
+                    if(j->empty()) tree.erase(j);
+                }
+            }
+        }
+        if(changed)
+        {
+            did_changes = true;
+            goto redo_combine;
+        }
+    }
+
+    return did_changes;
+}
+
 static bool CombineTree(choices& tree)
 {
     // (abc | dbc)   ->   ((a|d)bc)  -> [ad]bc
@@ -336,56 +503,86 @@ static bool CombineTree(choices& tree)
     // (aab | ab) -> a(ab|b) -> a(a|)b
     // a{1,2}b
     
+    // Combine those that have common ending
     for(choices::iterator i=tree.begin(); i!=tree.end(); ++i)
     {
         list<choices::iterator> com;
         com.push_back(i);
         for(choices::iterator j=i; ++j!=tree.end(); )
         {
-            if(IsEqualEndSequence(*i, *j)) com.push_back(j);
+            if(IsEqualSequenceAtEnd(*i, *j, 1)) com.push_back(j);
         }
         if(com.size() > 1)
         {
-            sequence rep = CopyEndSequence(*i, 1);
-            choices* subchoice = new choices;
+            sequence rep = CopySequenceFromEnd(*i, 1); // Copy the common part
+            choices subchoice;
+            
+            bool has_empty = false;
             for(list<choices::iterator>::iterator
                 k = com.begin(); k != com.end(); ++k)
             {
-                ClipEndSequence(**k, 1);
-                subchoice->push_back(**k);
-                tree.erase(*k);
+                choices::iterator& ki = *k;
+                sequence& kik = *ki;
+                
+                RemoveSequenceFromEnd(kik, 1); // Remove the common part
+                if(kik.empty())
+                    has_empty = true;
+                else
+                    subchoice.push_back(kik);
+                tree.erase(ki);
             }
-            item it;
-            it.tree = subchoice;
-            it.Optimize();
-            rep.insert(rep.begin(), it);
+            if(!subchoice.empty())
+            {
+                item it;
+                it.tree = new choices(subchoice);
+                if(has_empty) { it.min=0; } // make it optional
+                it.Optimize();
+                rep.insert(rep.begin(), it);
+                // Insert the new tree into the beginning of the new choice
+            }
             tree.push_back(rep);
             return true;
         }
     }
+    
+    // Combine those that have common beginning
+    // This loop is equal to the previous, except
+    // that Begin/begin/back and End/end/front are swapped.
     for(choices::iterator i=tree.begin(); i!=tree.end(); ++i)
     {
         list<choices::iterator> com;
         com.push_back(i);
         for(choices::iterator j=i; ++j!=tree.end(); )
         {
-            if(IsEqualBeginSequence(*i, *j)) com.push_back(j);
+            if(IsEqualSequenceAtBegin(*i, *j, 1)) com.push_back(j);
         }
         if(com.size() > 1)
         {
-            sequence rep = CopyBeginSequence(*i, 1);
-            choices* subchoice = new choices;
+            sequence rep = CopySequenceFromBegin(*i, 1);
+            choices subchoice;
+            bool has_empty = false;
             for(list<choices::iterator>::iterator
                 k = com.begin(); k != com.end(); ++k)
             {
-                ClipBeginSequence(**k, 1);
-                subchoice->push_back(**k);
-                tree.erase(*k);
+                choices::iterator& ki = *k;
+                sequence& kik = *ki;
+                
+                RemoveSequenceFromBegin(kik, 1);
+                if(kik.empty())
+                    has_empty = true;
+                else
+                    subchoice.push_back(kik);
+                tree.erase(ki);
             }
-            item it;
-            it.tree = subchoice;
-            it.Optimize();
-            rep.insert(rep.end(), it);
+            if(!subchoice.empty())
+            {
+                item it;
+                it.tree = new choices(subchoice);
+                if(has_empty) { it.min=0; } // make it optional
+                it.Optimize();
+                rep.insert(rep.end(), it);
+                // Insert the new tree into the end of the new choice
+            }
             tree.push_back(rep);
             return true;
         }
@@ -409,7 +606,7 @@ void OptimizeTree(choices& tree)
         cout << endl;
         */
 
-        bool changed = CombineTree(tree);
+        bool changed = CombineTree(tree) || CountingCombineTree(tree);
         if(!changed) break;
         
         /*
@@ -473,7 +670,7 @@ static const charset& GetDotMask()
 static const charset& GetDecMask()
 {
     static const struct data { charset result; data() {
-    for(unsigned a='0'; a<='9'; ++a) result[a]=true;
+    for(unsigned a='0'; a<='9'; ++a) result.set(a);
     } } data;
     return data.result;
 }
@@ -747,7 +944,10 @@ static void ParseCount(const string& s, unsigned& pos, unsigned& min, unsigned& 
             has_value=true;
         }
         else
+        {
+            std::cerr << "Invalid character: '" << (char)c << "'\n";
             throw "Invalid character in '{}'"; // error
+        }
     }
     throw "Unmatched '{' - needs '}'"; // error
 }
@@ -759,6 +959,8 @@ static const choices Parse(const string& s, unsigned& pos)
     bool count_ok = false;
     choices result;
     sequence seq;
+    
+    bool has_empty = false;
     
     for(; pos < b; ++pos)
     {
@@ -790,12 +992,11 @@ static const choices Parse(const string& s, unsigned& pos)
             }
             case ')':
             {
-                result.push_back(seq);
-                return result;
+                goto fin;
             }
             case '|':
             {
-                result.push_back(seq);
+                if(seq.empty()) has_empty = true; else result.push_back(seq);
                 seq.clear();
                 count_ok = false;
                 break;
@@ -905,7 +1106,9 @@ static const choices Parse(const string& s, unsigned& pos)
             }
         }
     }
-    result.push_back(seq);
+fin:
+    if(seq.empty()) has_empty = true; else result.push_back(seq);
+    if(has_empty && !result.empty()) result.push_back(sequence());
     OptimizeTree(result);
     return result;
 }
@@ -1053,7 +1256,7 @@ void DumpSequence(const sequence& s)
     for(vector<item>::const_iterator
         i = s.begin(); i != s.end(); ++i)
     {
-        bool need_parens = i->min!=1 || i->max!=1;
+        ParensFlag need_parens = (i->min!=1 || i->max!=1) ? yes_parens : automatic;
         
         if(i->tree)
             DumpTree(*i->tree, need_parens);
@@ -1068,10 +1271,9 @@ void DumpSequence(const sequence& s)
                 else if(i->min == 1) cout << '+';
                 else cout << '{' << i->min << ",}";
             }
-            else if(i->min == 0)
+            else if(i->min == 0 && i->max == 1)
             {
-                if(i->max == 1) cout << '?';
-                else cout << "{," << i->max << '}';
+                cout << '?';
             }
             else
             {
@@ -1096,16 +1298,18 @@ void DumpSequence(const sequence& s)
     }
 }
 
-void DumpTree(const choices& c, bool need_parens)
+void DumpTree(const choices& c, ParensFlag need_parens)
 {
-    if(c.size() != 1) need_parens = true;
+    if(need_parens == automatic)
+        need_parens = (ParensFlag)(c.size() != 1);
     
     if(need_parens) cout << "(?:";
 
+    bool first=true;
     for(choices::const_iterator
         i = c.begin(); i != c.end(); ++i)
     {
-        if(i != c.begin()) cout << "|";
+        if(first)first=false; else cout << '|';
         DumpSequence(*i);
     }
     if(need_parens) cout << ")";
@@ -1127,38 +1331,13 @@ static void TestSet(const string& s)
     cout << endl;
 }
 
-/*
-void CompileItem(const item& it, const string& next)
-{
-    
-}
-void CompileSequence(const sequence& seq, const string& next)
-{
-    for(unsigned a=0; a<seq.size(); ++a)
-    {
-        CompileItem(seq[a], next);
-    }
-}
-void CompileTree(const choices& c, const string& next)
-{  
-    for(choices::const_iterator
-        j, i = c.begin(); i != c.end(); i=j)
-    {
-        j=i; ++j; 
-        string nok = j==c.end() ? next : CreateLabel();
-        CompileSequence(*i, nok);
-    }
-}
-*/
-
-
 int main(int argc, const char* const* argv)
 {
     if(argc != 2)
     {
         cout
-        << "regex "VERSION" - Copyright (C) 1992,2004 Bisqwit (http://iki.fi/Bisqwit/)\n"
-           "This program is distributed under the terms of General Public License.\n"
+        << "regex-opt "VERSION" - Copyright (C) 1992,2006 Bisqwit (http://iki.fi/bisqwit/)\n"
+           "This program is distributed under the terms of the General Public License.\n"
            "\n"
            "Usage: regex-opt <regexp>\n";;
         return 0;
@@ -1168,7 +1347,7 @@ int main(int argc, const char* const* argv)
     unsigned pos=0;
     choices tree = Parse(regex, pos);
     
-    DumpTree(tree);
+    DumpTree(tree, (ParensFlag)false);
 
 /*
     TestSet("abcdef");

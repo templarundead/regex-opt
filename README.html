@@ -23,7 +23,7 @@ SMALL    {font-size:70%}
   <h1>Perl-compatible regular expression optimizer</h1>
   <h2 class=level2> 0. Contents </h2>
   
-  This is the documentation of regex-opt-1.1.0.
+  This is the documentation of regex-opt-1.1.1.
 <div class=toc><table cellspacing=0 cellpadding=0 class=toc><tr><td width="50%" valign=middle align=left nowrap class=toc>&nbsp;&nbsp;&nbsp;1. <a href="#h0">Purpose</a><br>&nbsp;&nbsp;&nbsp;2. <a href="#h1">Usage</a><br>&nbsp;&nbsp;&nbsp;3. <a href="#h2">Supported syntax</a><br>&nbsp;&nbsp;&nbsp;4. <a href="#h3">Unsupported syntax</a><br></td>
 <td width="50%" valign=middle align=left nowrap class=toc>&nbsp;&nbsp;&nbsp;5. <a href="#h4">Optimizations performed</a><br>&nbsp;&nbsp;&nbsp;6. <a href="#h5">Optimizations not performed</a><br>&nbsp;&nbsp;&nbsp;7. <a href="#h6">Copying</a><br>&nbsp;&nbsp;&nbsp;8. <a href="#h7">Requirements</a><br>&nbsp;&nbsp;&nbsp;9. <a href="#download">Downloading</a><br></td>
 </tr></table></div><H2 id="h0" class="level2"><a name="h0"></a>1. Purpose</H2><div class="level2" id="divh0">
@@ -53,7 +53,6 @@ The result should be about 5 kilobytes long.
  <li>+ (repeat 1-inf)</li>
  <li>? (repeat 0-1)</li>
  <li>{n} (repeat n)</li>
- <li>{,n} (repeat 0-n)</li>
  <li>{n,} (repeat n-inf)</li>
  <li>{n,m} (repeat n-m)</li>
  <li>. (accept any char except \n)</li>
@@ -84,14 +83,26 @@ The result should be about 5 kilobytes long.
  <li>Counting: aaa* and aa+ become a{2,}</li>
  <li>Combining: abcde|xycde becomes (?:ab|xy)cde</li>
  <li>Parenthesis reduction: ((abc)) becomes abc, (xx|yy)|zz becomes xx|yy|zz</li>
- <li>Compression: xyzyzxyzyz becomes (?:x(?:yz){2}){2}</li>
+ <li>Compression: xyzyzxyzyz becomes (?:x(?:yz){2}){2}
+  <ul>
+   <li>This might not be always a good thing.</li>
+  </ul></li>
+ <li>Choice counting: a+|aa+ becomes a+, (b|) becomes b?, dxxxxb|dxxxb|dxxb|dxb becomes dx{1,4}b</li>
 </ul>
 
 </div><H2 id="h5" class="level2"><a name="h5"></a>6. Optimizations not performed</H2><div class="level2" id="divh5">
 
 <ul>
- <li>Choice counting: aab|ab becomes (?:aa|a)b, not a{1,2}b</li>
+ <li>Combining counts:
+  <ul>
+   <li>a?|b? should become (?:a|b)?, now becomes a?|b?</li>
+  </ul></li>
+ <li>Redundancy removal (removal of alternatives that are subsets of other alternatives):
+  <ul>
+   <li>xfooy|x[a-q]+y should become x[a-q]+y, now becomes x(?:foo|[a-q]+)y</li>
+  </ul></li>
 </ul>
+Help in solving these shortcomings would be welcome.
 
 </div><H2 id="h6" class="level2"><a name="h6"></a>7. Copying</H2><div class="level2" id="divh6">
 
@@ -109,9 +120,9 @@ For compiling you need the following GNU tools: g++, make.<br>
    is at <a href="http://iki.fi/bisqwit/source/regex-opt.html">http://iki.fi/bisqwit/source/regex-opt.html</a>.<br>
    Check there for new versions.
 </div> <p align=right><small>Generated from
-       <tt>progdesc.php</tt> (last updated: Mon, 12 Jul 2004 20:33:53 +0300)<br>
+       <tt>progdesc.php</tt> (last updated: Mon, 16 Jan 2006 18:06:43 +0200)<br>
   with <tt>docmaker.php</tt> (last updated: Sun, 12 Jun 2005 06:08:02 +0300)<br>
-  at Tue, 25 Oct 2005 15:31:49 +0300</small>
+  at Mon, 16 Jan 2006 23:59:53 +0200</small>
  </p>
 </body>
 </html>

@@ -32,7 +32,6 @@ The result should be about 5 kilobytes long.
  <li>+ (repeat 1-inf)</li>
  <li>? (repeat 0-1)</li>
  <li>{n} (repeat n)</li>
- <li>{,n} (repeat 0-n)</li>
  <li>{n,} (repeat n-inf)</li>
  <li>{n,m} (repeat n-m)</li>
  <li>. (accept any char except \\n)</li>
@@ -63,14 +62,26 @@ The result should be about 5 kilobytes long.
  <li>Counting: aaa* and aa+ become a{2,}</li>
  <li>Combining: abcde|xycde becomes (?:ab|xy)cde</li>
  <li>Parenthesis reduction: ((abc)) becomes abc, (xx|yy)|zz becomes xx|yy|zz</li>
- <li>Compression: xyzyzxyzyz becomes (?:x(?:yz){2}){2}</li>
+ <li>Compression: xyzyzxyzyz becomes (?:x(?:yz){2}){2}
+  <ul>
+   <li>This might not be always a good thing.</li>
+  </ul></li>
+ <li>Choice counting: a+|aa+ becomes a+, (b|) becomes b?, dxxxxb|dxxxb|dxxb|dxb becomes dx{1,4}b</li>
 </ul>
 
 ", '1. Optimizations not performed' => "
 
 <ul>
- <li>Choice counting: aab|ab becomes (?:aa|a)b, not a{1,2}b</li>
+ <li>Combining counts:
+  <ul>
+   <li>a?|b? should become (?:a|b)?, now becomes a?|b?</li>
+  </ul></li>
+ <li>Redundancy removal (removal of alternatives that are subsets of other alternatives):
+  <ul>
+   <li>xfooy|x[a-q]+y should become x[a-q]+y, now becomes x(?:foo|[a-q]+)y</li>
+  </ul></li>
 </ul>
+Help in solving these shortcomings would be welcome.
 
 ", '1. Copying' => "
 
