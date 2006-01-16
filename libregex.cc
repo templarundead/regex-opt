@@ -3,8 +3,8 @@
 #include <cctype>
 #include <algorithm>
 #include <iostream>
-#include <vector>
-#include <list>
+
+#include "libregex.hh"
 
 /* Extended regular expression optimizer */
 /* Copyright (C) 1992,2006 Bisqwit (http://iki.fi/bisqwit/) */
@@ -13,80 +13,49 @@ using namespace std;
 
 static const unsigned uinf = ~0U;
 
-typedef bitset<256> charset;
-
-typedef vector<struct item> sequence;
-typedef list<sequence> choices;
+typedef regexopt_charset charset;
+typedef regexopt_sequence sequence;
+typedef regexopt_choices choices;
+typedef regexopt_item item;
 
 #include "rangeset.hh"
 
-struct item
+bool regexopt_item::is_equal(const regexopt_item& b) const
 {
-    choices* tree;
-    charset ch; // used if tree is 0.
+    if(greedy != b.greedy) return false;
+    if(tree) return b.tree && *tree == *b.tree;
+    if(b.tree) return false;
+    return ch == b.ch;
+}
+
+bool regexopt_item::is_combinable(const regexopt_item& b) const
+{
+    if(!is_equal(b)) return false;
     
-    unsigned min;
-    unsigned max;
-    bool greedy;
-    // bool bol;
-    // bool eol;
+    if(min==b.min && max==b.max) return true;
     
-    item(): tree(0),ch(),min(1),max(1),greedy(true)
-    {
-    }
-    
-    ~item()
-    {
-        //if(tree) delete tree;
-    }
-    
-    bool is_equal(const item& b) const
-    {
-        if(greedy != b.greedy) return false;
-        if(tree) return b.tree && *tree == *b.tree;
-        if(b.tree) return false;
-        return ch == b.ch;
-    }
-    
-    /* - TODO
-    bool is_subset_of(const item& b) const
-    {
-    }
-    */
-    
-    bool is_combinable(const item& b) const
-    {  
-        if(!is_equal(b)) return false;
-        
-        if(min==b.min && max==b.max) return true;
-        
-        return false;
-    }
-    
-    bool operator!=(const item& b) const { return !operator==(b); }
-    bool operator==(const item& b) const
-    {
-        if(!tree != !b.tree
-        || min != b.min
-        || max != b.max
-        || greedy != b.greedy) return false;
-        if(tree) { return *tree == *b.tree; }
-        return ch == b.ch;
-    }
-    
-    void Optimize();
-//private:
-//    void operator= (const item&);
-//    item(const item&);
-};
+    return false;
+}
+
+bool regexopt_item::operator==(const regexopt_item& b) const
+{
+    if(!tree != !b.tree
+    || min != b.min
+    || max != b.max
+    || greedy != b.greedy) return false;
+    if(tree) { return *tree == *b.tree; }
+    return ch == b.ch;
+}
+
 
 enum ParensFlag { no_parens=false, yes_parens=true, automatic=2 };
-void DumpTree(const choices& c, ParensFlag need_parens=automatic);
-void DumpSequence(const sequence& s);
-void DumpKey(const charset& s);
 
-void OptimizeSequence(sequence& seq);
-void OptimizeTree(choices& tree);
+static void DumpTree(std::ostream&, const choices& c, ParensFlag need_parens=automatic);
+static void DumpSequence(std::ostream&, const sequence& s);
+static void DumpKey(std::ostream&, const charset& s);
+
+static void OptimizeSequence(sequence& seq);
+static void OptimizeTree(choices& tree);
 
 static void SumCounts(unsigned& target, unsigned value)
 {
@@ -274,7 +243,7 @@ static void FlattenSequence(sequence& seq)
     seq = result;
 }
 
-void OptimizeSequence(sequence& seq)
+static void OptimizeSequence(sequence& seq)
 {
     for(sequence::iterator i=seq.begin(); i!=seq.end(); ++i)
     {
@@ -368,12 +337,6 @@ static bool CountingCombineTree(choices& tree)
      * there are for the first item.
      */
 redo_combine:
-    /*
-    fprintf(stderr, "Attempt CountingCombineTree for '"); fflush(stderr);
-    DumpTree(tree, yes_parens); std::cout << std::flush;
-    fprintf(stderr, "' (%u)\n", tree.size());
-    */
-    
     for(choices::iterator i=tree.begin(); i!=tree.end(); ++i)
     {
         if(i->size() != 1) continue;
@@ -433,16 +396,6 @@ redo_combine:
                 
                 if(j_ref.min >= r_min && j_ref.max <= r_max)
                 {
-                    /*
-                    fprintf(stderr, "Comparing '");
-                    DumpSequence(*i); std::cout << std::flush;
-                    fprintf(stderr, "' with '");
-                    DumpSequence(*j); std::cout << std::flush;
-                    fprintf(stderr, "': (%u,%u) overlaps with r=(%u,%u) (%s)\n",
-                        j_ref.min, j_ref.max,
-                        r_min, r_max, first?"first":"not first");
-                    */
-                    
                     found_something = true;
                     
                     if(first)
@@ -590,7 +543,7 @@ static bool CombineTree(choices& tree)
     return false;
 }
 
-void OptimizeTree(choices& tree)
+static void OptimizeTree(choices& tree)
 {   
     for(;;)
     {
@@ -600,20 +553,8 @@ void OptimizeTree(choices& tree)
         FlattenTree(tree);
         CharsetCombineTree(tree);
 
-        /*
-        cout << "CombineTree:\n";
-        DumpTree(tree);
-        cout << endl;
-        */
-
         bool changed = CombineTree(tree) || CountingCombineTree(tree);
         if(!changed) break;
-        
-        /*
-        cout << "Changed:\n";
-        DumpTree(tree);
-        cout << endl;
-        */
         
         FlattenTree(tree);
     }
@@ -905,7 +846,6 @@ static const charset ParseCharSet(const string& s, unsigned& pos)
                 {
                     range_ok = key.count() == 1;
                     if(!begin) result |= prev;
-                    //cout << "key.count(" << key.count() << ") for (" << key << ")\n";
                 }
                 prev = key;
                 break;
@@ -979,7 +919,7 @@ static const choices Parse(const string& s, unsigned& pos)
                     std::string escape = s.substr(pos,3);
                     throw std::string("Unexpected '?' escape \"") + escape + "\"";
                 }
-                struct item ch;
+                regexopt_item ch;
                 ++pos;
                 ch.tree = new choices(Parse(s, pos));
                 seq.push_back(ch);
@@ -1021,7 +961,7 @@ static const choices Parse(const string& s, unsigned& pos)
             {
                 if(count_ok)
                 {
-                    struct item& ch = seq.back();
+                    regexopt_item& ch = seq.back();
                     ch.min = 0;
                     ch.max = uinf;
                     count_ok = false;
@@ -1034,7 +974,7 @@ static const choices Parse(const string& s, unsigned& pos)
             {
                 if(count_ok)
                 {
-                    struct item& ch = seq.back();
+                    regexopt_item& ch = seq.back();
                     ch.min = 1;
                     ch.max = uinf;
                     count_ok = false;
@@ -1047,7 +987,7 @@ static const choices Parse(const string& s, unsigned& pos)
             {
                 if(count_ok)
                 {
-                    struct item& ch = seq.back();
+                    regexopt_item& ch = seq.back();
                     ch.min = 0;
                     ch.max = 1;
                     count_ok = false;
@@ -1058,7 +998,7 @@ static const choices Parse(const string& s, unsigned& pos)
             count_end:
                 if(pos+1<b && s[pos+1]=='?')
                 {
-                    struct item& ch = seq.back();
+                    regexopt_item& ch = seq.back();
                     ch.greedy = false;
                     ++pos;
                 }
@@ -1073,7 +1013,7 @@ static const choices Parse(const string& s, unsigned& pos)
                 
                 if(count_ok)
                 {
-                    struct item& ch = seq.back();
+                    regexopt_item& ch = seq.back();
                     ch.min = n;
                     ch.max = m;
                     count_ok = false;
@@ -1098,7 +1038,7 @@ static const choices Parse(const string& s, unsigned& pos)
                 key.set((unsigned char)s[pos]);
                 goto gotchar;
             gotchar:
-                struct item ch;
+                regexopt_item ch;
                 ch.ch  = key;
                 seq.push_back(ch);
                 count_ok = true;
@@ -1113,7 +1053,7 @@ fin:
     return result;
 }
 
-const string EscapeChar(unsigned char c)
+static const string EscapeChar(unsigned char c)
 {
     if(c == '\n') return "\\n";
     if(c == '\r') return "\\r";
@@ -1131,9 +1071,9 @@ const string EscapeChar(unsigned char c)
     return Buf;
 }
 
-void DumpKey(const charset& s)
+static void DumpKey(std::ostream& out, const charset& s)
 {
-    if(s == GetDotMask()) { cout << '.'; return; }
+    if(s == GetDotMask()) { out << '.'; return; }
     if(s.count() == 1)
     {
         char c = s._Find_first();
@@ -1142,7 +1082,7 @@ void DumpKey(const charset& s)
             case '?': case '(': case ')': case '|':
             case '[': case '\\': case '.': case '*':
             case '+': case '{': case '^': case '$': //}
-                cout << '\\' << c;
+                out << '\\' << c;
                 return;
         }
     }
@@ -1246,12 +1186,12 @@ void DumpKey(const charset& s)
         size[flip] = n;
     }
     if(size[0] <= size[1])
-        cout << result[0];
+        out << result[0];
     else
-        cout << result[1];
+        out << result[1];
 }
 
-void DumpSequence(const sequence& s)
+static void DumpSequence(std::ostream& out, const sequence& s)
 {
     for(vector<item>::const_iterator
         i = s.begin(); i != s.end(); ++i)
@@ -1259,21 +1199,21 @@ void DumpSequence(const sequence& s)
         ParensFlag need_parens = (i->min!=1 || i->max!=1) ? yes_parens : automatic;
         
         if(i->tree)
-            DumpTree(*i->tree, need_parens);
+            DumpTree(out, *i->tree, need_parens);
         else
-            DumpKey(i->ch);
+            DumpKey(out, i->ch);
         
         if(i->min != 1 || i->max != 1)
         {
             if(i->max == uinf)
             {
-                if(i->min == 0) cout << '*';
-                else if(i->min == 1) cout << '+';
-                else cout << '{' << i->min << ",}";
+                if(i->min == 0) out << '*';
+                else if(i->min == 1) out << '+';
+                else out << '{' << i->min << ",}";
             }
             else if(i->min == 0 && i->max == 1)
             {
-                cout << '?';
+                out << '?';
             }
             else
             {
@@ -1283,36 +1223,41 @@ void DumpSequence(const sequence& s)
                     // but [[:xdigit:]]{2} is nicer than [[:xdigit:]][[:xdigit:]]
                     if(i->min < 3 && !i->tree && i->ch.count() == 1)
                     {
-                        for(unsigned a=1; a<i->min; ++a) DumpKey(i->ch);
+                        for(unsigned a=1; a<i->min; ++a) DumpKey(out, i->ch);
                     }
                     else
-                        cout << '{' << i->min << '}';
+                        out << '{' << i->min << '}';
                 }
                 else
                 {
-                    cout << '{' << i->min << ',' << i->max << '}';
+                    out << '{' << i->min << ',' << i->max << '}';
                 }
             }
-            if(!i->greedy) cout << '?';
+            if(!i->greedy) out << '?';
         }
     }
 }
 
-void DumpTree(const choices& c, ParensFlag need_parens)
+static void DumpTree(std::ostream& out, const choices& c, ParensFlag need_parens)
 {
     if(need_parens == automatic)
         need_parens = (ParensFlag)(c.size() != 1);
     
-    if(need_parens) cout << "(?:";
+    if(need_parens) out << "(?:";
 
     bool first=true;
     for(choices::const_iterator
         i = c.begin(); i != c.end(); ++i)
     {
-        if(first)first=false; else cout << '|';
-        DumpSequence(*i);
+        if(first)first=false; else out << '|';
+        DumpSequence(out, *i);
     }
-    if(need_parens) cout << ")";
+    if(need_parens) out << ")";
+}
+
+void DumpRegexOptTree(std::ostream& out, const regexopt_choices& tree)
+{
+    DumpTree(out, tree, (ParensFlag)false);
 }
 
 static void TestSet(const string& s)
@@ -1331,48 +1276,7 @@ static void TestSet(const string& s)
     cout << endl;
 }
 
-int main(int argc, const char* const* argv)
+const regexopt_choices RegexOptParse(const std::string& s, unsigned& pos)
 {
-    if(argc != 2)
-    {
-        cout
-        << "regex-opt "VERSION" - Copyright (C) 1992,2006 Bisqwit (http://iki.fi/bisqwit/)\n"
-           "This program is distributed under the terms of the General Public License.\n"
-           "\n"
-           "Usage: regex-opt <regexp>\n";;
-        return 0;
-    }
-    try {
-    string regex = argv[1];
-    unsigned pos=0;
-    choices tree = Parse(regex, pos);
-    
-    DumpTree(tree, (ParensFlag)false);
-
-/*
-    TestSet("abcdef");
-    TestSet("0-9");
-    TestSet("ac-km");
-    TestSet("a-z0-9");
-    TestSet("-abc");
-    TestSet("a-c-f");
-    TestSet("abc-");
-    TestSet("^abc");
-    TestSet("a\\d-fh");
-    TestSet("a\\143fh");
-    TestSet("a\\143-fh");
-*/
-
-    }
-    catch(const char *s)
-    {
-        cout << "Error: " << s << endl;
-        return -1;
-    }
-    catch(const std::string& s)
-    {
-        cout << "Error: " << s.c_str() << endl;
-        return -1;
-    }
-    return 0;
+    return Parse(s, pos);
 }

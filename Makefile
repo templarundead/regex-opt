@@ -18,9 +18,11 @@ OPTIM=-O3
 
 CPPFLAGS += -I.
 
-VERSION=1.1.1
+VERSION=1.2.0
+
 ARCHFILES=COPYING Makefile.sets progdesc.php \
-          regex.cc \
+          main.cc \
+          libregex.cc libregex.hh \
           autoptr \
           range.hh range.tcc \
           rangeset.hh rangeset.tcc
@@ -38,9 +40,12 @@ INSTALL=install
 
 all: $(PROGS)
 
-regex-opt: regex.o
+regex-opt: main.o libregex.a
 	$(CXX) $(CXXFLAGS) -g -o $@ $^ \
 		$(LDFLAGS)
+
+libregex.a: libregex.o
+	ar -rc $@ $^
 
 clean: FORCE
 	rm -f *.o $(PROGS)
