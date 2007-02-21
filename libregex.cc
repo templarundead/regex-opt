@@ -28,15 +28,6 @@ bool regexopt_item::is_equal(const regexopt_item& b) const
     return ch == b.ch;
 }
 
-bool regexopt_item::is_combinable(const regexopt_item& b) const
-{
-    if(!is_equal(b)) return false;
-    
-    if(min==b.min && max==b.max) return true;
-    
-    return false;
-}
-
 bool regexopt_item::operator==(const regexopt_item& b) const
 {
     if(!tree != !b.tree
@@ -91,22 +82,22 @@ static bool IsEqualSequenceAtEnd(const sequence& a, const sequence& b, unsigned 
 static const sequence CopySequenceFromEnd(const sequence& a, unsigned n)
 {
     sequence result;
-    result.insert(result.end(), a.end() - std::min(n, a.size()), a.end());
+    result.insert(result.end(), a.end() - std::min(n, (unsigned)a.size()), a.end());
     return result;
 }
 static const sequence CopySequenceFromBegin(const sequence& a, unsigned n)
 {
     sequence result;
-    result.insert(result.end(), a.begin(), a.begin() + std::min(n, a.size()));
+    result.insert(result.end(), a.begin(), a.begin() + std::min(n, (unsigned)a.size()));
     return result;
 }
 static void RemoveSequenceFromBegin(sequence& a, unsigned n)
 {
-    a.erase(a.begin(), a.begin() + std::min(a.size(), n));
+    a.erase(a.begin(), a.begin() + std::min((unsigned)a.size(), n));
 }
 static void RemoveSequenceFromEnd(sequence& a, unsigned n)
 {
-    a.erase(a.end() - std::min(n, a.size()), a.end());
+    a.erase(a.end() - std::min(n, (unsigned)a.size()), a.end());
 }
 
 static void CompressSequence(sequence& seq)
@@ -268,10 +259,12 @@ static void FlattenTree(choices& tree)
         if(seq.size() != 1) continue;
         
         const item& it = seq[0];
-        if(!it.tree || it.min != 1 || it.max != 1) continue;
         
-        tree.insert(j, it.tree->begin(), it.tree->end());
-        tree.erase(i);
+        if(it.tree && it.min == 1 && it.max == 1)
+        {
+            tree.insert(j, it.tree->begin(), it.tree->end());
+            tree.erase(i);
+        }
     }
 }
 
@@ -417,6 +410,7 @@ redo_combine:
                     }
                 }
             }
+            
             if(r_min == 0 && found_something)
             {
                 // Then we may delete zero-length sequences
@@ -574,6 +568,8 @@ void item::Optimize()
         // Convert (x){5,7} to x{5,7}
         // Not convert (x{2}){3}
         
+        // Do convert (x{0,n}){m} to x{0,n*m}
+        
         if(tree->size() == 1)
         {
             const sequence& seq = *tree->begin();
@@ -590,6 +586,15 @@ void item::Optimize()
                 else if(it.min==1 && it.max==1)
                 {
                     choices* tmp = tree;
+                    tree = it.tree;
+                    ch   = it.ch;
+                    delete tmp;
+                }
+                else if(it.min==0 && min==max)
+                {
+                    choices* tmp = tree;
+                    min = 0;
+                    max *= it.max;
                     tree = it.tree;
                     ch   = it.ch;
                     delete tmp;

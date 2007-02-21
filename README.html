@@ -23,7 +23,7 @@ SMALL    {font-size:70%}
   <h1>Perl-compatible regular expression optimizer</h1>
   <h2 class=level2> 0. Contents </h2>
   
-  This is the documentation of regex-opt-1.2.0.
+  This is the documentation of regex-opt-1.2.1.
 <div class=toc><table cellspacing=0 cellpadding=0 class=toc><tr><td width="50%" valign=middle align=left nowrap class=toc>&nbsp;&nbsp;&nbsp;1. <a href="#h0">Purpose</a><br>&nbsp;&nbsp;&nbsp;2. <a href="#h1">Usage</a><br>&nbsp;&nbsp;&nbsp;3. <a href="#h2">Supported syntax</a><br>&nbsp;&nbsp;&nbsp;4. <a href="#h3">Unsupported syntax</a><br></td>
 <td width="50%" valign=middle align=left nowrap class=toc>&nbsp;&nbsp;&nbsp;5. <a href="#h4">Optimizations performed</a><br>&nbsp;&nbsp;&nbsp;6. <a href="#h5">Optimizations not performed</a><br>&nbsp;&nbsp;&nbsp;7. <a href="#h6">Copying</a><br>&nbsp;&nbsp;&nbsp;8. <a href="#h7">Requirements</a><br>&nbsp;&nbsp;&nbsp;9. <a href="#download">Downloading</a><br></td>
 </tr></table></div><H2 id="h0" class="level2"><a name="h0"></a>1. Purpose</H2><div class="level2" id="divh0">
@@ -80,7 +80,7 @@ The result should be about 5 kilobytes long.
 <ul>
  <li>Character set optimization: [A-Zabcdefgh-yz0-9%] becomes [[:alnum:]%]</li>
  <li>Alternate characters: y|[yp]|[zx] becomes [px-z]</li>
- <li>Counting: aaa* and aa+ become a{2,}</li>
+ <li>Counting: aaa* and aa+ become a{2,} and (a?){3} becomes a{0,3}</li>
  <li>Combining: abcde|xycde becomes (?:ab|xy)cde</li>
  <li>Parenthesis reduction: ((abc)) becomes abc, (xx|yy)|zz becomes xx|yy|zz</li>
  <li>Compression: xyzyzxyzyz becomes (?:x(?:yz){2}){2}
@@ -120,9 +120,9 @@ For compiling you need the following GNU tools: g++, make.<br>
    is at <a href="http://iki.fi/bisqwit/source/regex-opt.html">http://iki.fi/bisqwit/source/regex-opt.html</a>.<br>
    Check there for new versions.
 </div> <p align=right><small>Generated from
-       <tt>progdesc.php</tt> (last updated: Mon, 16 Jan 2006 18:06:43 +0200)<br>
+       <tt>progdesc.php</tt> (last updated: Wed, 21 Feb 2007 17:27:15 +0200)<br>
   with <tt>docmaker.php</tt> (last updated: Sun, 12 Jun 2005 06:08:02 +0300)<br>
-  at Tue, 17 Jan 2006 00:47:17 +0200</small>
+  at Wed, 21 Feb 2007 17:27:23 +0200</small>
  </p>
 </body>
 </html>

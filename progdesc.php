@@ -59,7 +59,7 @@ The result should be about 5 kilobytes long.
 <ul>
  <li>Character set optimization: [A-Zabcdefgh-yz0-9%] becomes [[:alnum:]%]</li>
  <li>Alternate characters: y|[yp]|[zx] becomes [px-z]</li>
- <li>Counting: aaa* and aa+ become a{2,}</li>
+ <li>Counting: aaa* and aa+ become a{2,} and (a?){3} becomes a{0,3}</li>
  <li>Combining: abcde|xycde becomes (?:ab|xy)cde</li>
  <li>Parenthesis reduction: ((abc)) becomes abc, (xx|yy)|zz becomes xx|yy|zz</li>
  <li>Compression: xyzyzxyzyz becomes (?:x(?:yz){2}){2}

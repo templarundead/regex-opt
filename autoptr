@@ -61,6 +61,8 @@ public:
     // Assigning
     autoptr &operator= (T *const a) { Set(a); return *this; }
     autoptr &operator= (const autoptr &a) { Set(&*a); return *this; }
+    void reset(T *const a) { Set(a); }
+    void reset(const autoptr &a) { Set(&*a); }
     
     ~autoptr() { Forget(); }
 private:
@@ -115,6 +117,17 @@ public:
     
     /* Debugging purposes */
     inline unsigned long get_autoptr_refnum() const { return _ptr_ref_num; }
+};
+
+template<typename T>
+class ptrable_autoptr: public autoptr<T>, public ptrable
+{
+public:
+    ptrable_autoptr() : autoptr<T>(), ptrable() { }
+    ptrable_autoptr(T *const a) : autoptr<T>(a), ptrable() { }
+    ptrable_autoptr(const ptrable_autoptr &a) : autoptr<T>(a), ptrable(a) { }
+
+    inline operator T* () const { return autoptr<T>::operator T* (); }
 };
 
 #endif

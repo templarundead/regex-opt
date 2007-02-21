@@ -35,13 +35,17 @@ struct regexopt_item
         //if(tree) delete tree;
     }
     
-    bool is_equal(const regexopt_item& b) const;
-    bool is_subset_of(const regexopt_item& b) const; // TODO: implement
-    
-    bool is_combinable(const regexopt_item& b) const;
-    
+    /* Standard comparisons: Compare whether two instances
+     * are indetical. */
     bool operator!=(const regexopt_item& b) const { return !operator==(b); }
     bool operator==(const regexopt_item& b) const;
+    
+    /* Like operator==, but ignores min and max. */
+    bool is_equal(const regexopt_item& b) const;
+    
+    /* Check whether this node is redundant in the presence
+     * of the comparison node. */
+    bool is_subset_of(const regexopt_item& b) const; // Not implemented. TODO.
     
     void Optimize();
 //private:

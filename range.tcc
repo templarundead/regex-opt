@@ -1,3 +1,4 @@
+#include <algorithm> // for std::max, std::min
 #include "range.hh"
 
 /* map::lower_bound(k) = find the first element whose key >= k */
@@ -62,6 +63,25 @@ void rangecollection<Key,Valueholder>::erase(const Key& lo, const Key& up)
     }
 }
 
+template<typename Key, typename Valueholder>
+void rangecollection<Key,Valueholder>::erase_before(const Key& lo)
+{
+    if(!empty())
+    {
+        const_iterator b = begin();
+        if(b->first < lo) erase(b->first, lo);
+    }
+}
+
+template<typename Key, typename Valueholder>
+void rangecollection<Key,Valueholder>::erase_after(const Key& hi)
+{
+    if(!empty())
+    {
+        typename Cont::const_reverse_iterator b = data.rbegin();
+        if(b->first > hi) erase(hi, b->first);
+    }
+}
 
 template<typename Key, typename Valueholder> template<typename Valuetype>
 void rangecollection<Key,Valueholder>::set(const Key& lo, const Key& up, const Valuetype& val)
@@ -157,4 +177,14 @@ const typename rangecollection<Key,Valueholder>::const_iterator
     }
     if(tmp->second.is_nil()) return end();
     return tmp;
+}
+
+template<typename Key>
+rangetype<Key> rangetype<Key>::intersect(const rangetype<Key>& b) const
+{
+    rangetype<Key> result;
+    result.lower = std::max(lower, b.lower);
+    result.upper = std::min(upper, b.upper);
+    if(result.upper < result.lower) result.upper = result.lower;
+    return result;
 }

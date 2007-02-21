@@ -28,6 +28,7 @@ class rangeset
     Cont data;
     
 public:
+    /* Iterates over _set_ ranges */
     struct const_iterator: public rangetype<Key>
     {
         const const_iterator* operator-> () const { return this; }
@@ -57,10 +58,15 @@ public:
     /* Erase a single value */
     void erase(const Key& lo) { data.erase(lo, lo+1); }
     
+    void erase_before(const Key& lo) { data.erase_before(lo); }
+    void erase_after(const Key& up) { data.erase_after(up); }
+    
     /* Modify the given range to have the given value */
     void set(const Key& lo, const Key& up) { data.set(lo, up, true); }
     
     void insert(const Key& pos) { set(pos, pos+1); }
+    
+    rangeset intersect(const rangeset& b) const;
     
     /* Find the range that has this value */
     const_iterator find(const Key& v) const { return ConstructIterator(data.find(v)); }
