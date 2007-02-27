@@ -1190,6 +1190,10 @@ static void DumpKey(std::ostream& out, const charset& s)
         if(need_set || n > 1) result[flip] += ']';
         size[flip] = n;
     }
+    
+    if(size[0]==0 && size[1] > 0) size[0] = 255;
+    if(size[1]==0 && size[0] > 0) size[1] = 255;
+    
     if(size[0] <= size[1])
         out << result[0];
     else
