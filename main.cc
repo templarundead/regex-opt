@@ -15,11 +15,11 @@ int main(int argc, const char* const* argv)
     }
     try {
         std::string regex = argv[1];
-        
+
         unsigned pos=0;
-        
+
         regexopt_choices tree = RegexOptParse(regex, pos);
-        
+
         DumpRegexOptTree(std::cout, tree);
     }
     catch(const char *s)

@@ -4,8 +4,8 @@
 /* map::lower_bound(k) = find the first element whose key >= k */
 /* map::upper_bound(k) = find the first element whose key > k */
 
-template<typename Key, typename Valueholder>
-void rangecollection<Key,Valueholder>::erase(const Key& lo, const Key& up)
+template<typename Key, typename Valueholder, typename Allocator>
+void rangecollection<Key,Valueholder,Allocator>::erase(const Key& lo, const Key& up)
 {
     typename Cont::iterator next_thing = data.lower_bound(up);
     if(next_thing != data.end() && next_thing->first == up)
@@ -30,7 +30,7 @@ void rangecollection<Key,Valueholder>::erase(const Key& lo, const Key& up)
             data.insert(std::make_pair(up, next_thing->second));
         }
     }
-    
+
     /*
      -  Erase all elements that are left inside our range
     */
@@ -41,7 +41,7 @@ void rangecollection<Key,Valueholder>::erase(const Key& lo, const Key& up)
         j=i; ++j;
         data.erase(i);
     }
-    
+
     /*
      -  Find what was going on before <lo>
         If it does not exist or was different than this,
@@ -63,8 +63,8 @@ void rangecollection<Key,Valueholder>::erase(const Key& lo, const Key& up)
     }
 }
 
-template<typename Key, typename Valueholder>
-void rangecollection<Key,Valueholder>::erase_before(const Key& lo)
+template<typename Key, typename Valueholder, typename Allocator>
+void rangecollection<Key,Valueholder,Allocator>::erase_before(const Key& lo)
 {
     if(!empty())
     {
@@ -73,8 +73,8 @@ void rangecollection<Key,Valueholder>::erase_before(const Key& lo)
     }
 }
 
-template<typename Key, typename Valueholder>
-void rangecollection<Key,Valueholder>::erase_after(const Key& hi)
+template<typename Key, typename Valueholder, typename Allocator>
+void rangecollection<Key,Valueholder,Allocator>::erase_after(const Key& hi)
 {
     if(!empty())
     {
@@ -83,11 +83,12 @@ void rangecollection<Key,Valueholder>::erase_after(const Key& hi)
     }
 }
 
-template<typename Key, typename Valueholder> template<typename Valuetype>
-void rangecollection<Key,Valueholder>::set(const Key& lo, const Key& up, const Valuetype& val)
+template<typename Key, typename Valueholder, typename Allocator>
+  template<typename Valuetype>
+void rangecollection<Key,Valueholder,Allocator>::set(const Key& lo, const Key& up, const Valuetype& val)
 {
     Valueholder newvalue(val);
-    
+
     /*
      -  Find what is supposed to be continuing after this block
         If nothing was going on before the end, add nil at <up>
@@ -117,7 +118,7 @@ void rangecollection<Key,Valueholder>::set(const Key& lo, const Key& up, const V
             data.insert(std::make_pair(up, next_thing->second));
         }
     }
-    
+
     /*
      -  Erase all elements that are left inside our range
     */
@@ -128,7 +129,7 @@ void rangecollection<Key,Valueholder>::set(const Key& lo, const Key& up, const V
         j=i; ++j;
         data.erase(i);
     }
-    
+
     /*
      -  Find what was going on before <lo>
         If it does not exist or was different than this,
@@ -149,8 +150,8 @@ void rangecollection<Key,Valueholder>::set(const Key& lo, const Key& up, const V
     }
 }
 
-template<typename Key, typename Valueholder>
-void rangecollection<Key,Valueholder>::flip(const Key& floor, const Key& ceil)
+template<typename Key, typename Valueholder, typename Allocator>
+void rangecollection<Key,Valueholder,Allocator>::flip(const Key& floor, const Key& ceil)
 {
     const_iterator i = lower_bound(floor);
     if(i == end() || i->first != floor)
@@ -159,9 +160,9 @@ void rangecollection<Key,Valueholder>::flip(const Key& floor, const Key& ceil)
     }
 }
 
-template<typename Key, typename Valueholder>
-const typename rangecollection<Key,Valueholder>::const_iterator
-    rangecollection<Key,Valueholder>::find(const Key& v) const
+template<typename Key, typename Valueholder, typename Allocator>
+const typename rangecollection<Key,Valueholder,Allocator>::const_iterator
+    rangecollection<Key,Valueholder,Allocator>::find(const Key& v) const
 {
     typename Cont::const_iterator tmp = data.lower_bound(v);
     if(tmp == data.end())

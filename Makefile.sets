@@ -8,8 +8,8 @@ LDFLAGS=-g
 
 CWARNINGS=-Wall -W -pipe -g \
     -Wundef \
-    -Wcast-qual -Wcast-align -Wwrite-strings -Wstrict-prototypes \
-    -Wmissing-prototypes -Winline
+    -Wcast-qual -Wcast-align -Wwrite-strings \
+    -Winline
 #   -Wtraditional  -fmessage-length=128
 
 CXXFLAGS=-pedantic -ffast-math $(CWARNINGS)

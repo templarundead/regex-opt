@@ -18,7 +18,7 @@ OPTIM=-O3
 
 CPPFLAGS += -I.
 
-VERSION=1.2.2
+VERSION=1.2.3
 
 ARCHFILES=COPYING Makefile.sets progdesc.php \
           main.cc \

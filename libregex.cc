@@ -9,8 +9,6 @@
 /* Extended regular expression optimizer */
 /* Copyright (C) 1992,2006 Bisqwit (http://iki.fi/bisqwit/) */
 
-using namespace std;
-
 static const unsigned uinf = ~0U;
 
 typedef regexopt_charset charset;
@@ -103,10 +101,10 @@ static void RemoveSequenceFromEnd(sequence& a, unsigned n)
 static void CompressSequence(sequence& seq)
 {
     if(seq.empty()) return;
-    
+
     // Convert ab{0}c to ac
     // Convert aaaa to a{4}
-    
+
     unsigned prev=0;
     sequence result;
     result.reserve(seq.size());
@@ -114,7 +112,7 @@ static void CompressSequence(sequence& seq)
     for(unsigned a=1; a<seq.size(); ++a)
     {
         item& it = seq[a];
-        
+
         if(it.max==0)
             erased=true;
         else if(it.is_equal(seq[prev]))
@@ -162,11 +160,11 @@ restart:
     {
         unsigned left = seq.size() - a;
         unsigned maxlen = left / 2;
-        
+
         unsigned bestscore = 0;
         unsigned bestscore_len   = 0;
         unsigned bestscore_count = 0;
-        
+
         for(unsigned m=1; m<=maxlen; ++m)
         {
             unsigned maxcount = left / m;
@@ -191,7 +189,7 @@ restart:
         {
             sequence subseq;
             subseq.insert(subseq.end(), seq.begin()+a, seq.begin()+a+bestscore_len);
-            
+
             choices* tmp = new choices;
             tmp->push_back(subseq);
             item it;
@@ -207,10 +205,10 @@ restart:
 static void FlattenSequence(sequence& seq)
 {
     // Convert a(bc) to abc
-    
+
     sequence result;
     result.reserve(seq.size());
-    
+
     for(unsigned a=0; a<seq.size(); ++a)
     {
         if(seq[a].tree
@@ -219,9 +217,9 @@ static void FlattenSequence(sequence& seq)
         && seq[a].tree->size() == 1)
         {
             sequence& seq2 = *seq[a].tree->begin();
-            
+
             OptimizeSequence(seq2);
-            
+
             result.insert(result.end(), seq2.begin(), seq2.end());
         }
         else if(seq[a].max > 0
@@ -250,16 +248,16 @@ static void OptimizeSequence(sequence& seq)
 static void FlattenTree(choices& tree)
 {
     // Convert ((x|y)|z) to (x|y|z)  or ((abc)) to (abc)
-    
+
     for(choices::iterator j,i=tree.begin(); i!=tree.end(); i=j)
     {
         j=i; ++j;
 
         const sequence& seq = *i;
         if(seq.size() != 1) continue;
-        
+
         const item& it = seq[0];
-        
+
         if(it.tree && it.min == 1 && it.max == 1)
         {
             tree.insert(j, it.tree->begin(), it.tree->end());
@@ -273,15 +271,15 @@ static void CharsetCombineTree(choices& tree)
     // Convert (a|d) to ([ad])
 
     charset ch;
-    
+
     bool found_sets = false;
     for(choices::iterator j,i=tree.begin(); i!=tree.end(); i=j)
     {
         j=i; ++j;
-        
+
         const sequence& seq = *i;
         if(seq.size() != 1) continue;
-        
+
         const item& it = seq[0];
         if(it.min != 1 || it.max != 1) continue;
         if(it.tree)
@@ -293,7 +291,7 @@ static void CharsetCombineTree(choices& tree)
             }*/
             continue;
         }
-        
+
         ch |= it.ch;
         found_sets = true;
         tree.erase(i);
@@ -311,12 +309,12 @@ static void CharsetCombineTree(choices& tree)
     {
         const sequence& seq = *i;
         if(seq.size() != 1) { only_sets = false; break; }
-        
+
         const item& it = seq[0];
         if(it.tree) continue;
-        
+
         if(!it.greedy) continue;
-        
+
         // we need a rangeset with possibility of open ends
     }
 */
@@ -325,7 +323,7 @@ static void CharsetCombineTree(choices& tree)
 static bool CountingCombineTree(choices& tree)
 {
     bool did_changes = false;
-    
+
     /* For each choice, create a map of how many alternatives
      * there are for the first item.
      */
@@ -334,16 +332,16 @@ redo_combine:
     {
         if(i->size() != 1) continue;
         const item& i_ref = *i->begin();
-        
+
         rangeset<unsigned> ranges;
-        
+
         /* In rangeset, the "upper" is exclusive.
          * In choice, the "max" is inclusive.
          * Therefore, convert.
          */
         unsigned i_max = i_ref.max; if(i_max != uinf) ++i_max;
         ranges.set(i_ref.min, i_max);
-        
+
         for(choices::iterator j=tree.begin(); j!=tree.end(); ++j)
         {
             if(j->empty())
@@ -355,16 +353,16 @@ redo_combine:
             }
             if(i == j || j->size() != 1) continue;
             const item& j_ref = *j->begin();
-            
+
             if(!i_ref.is_equal(j_ref)) continue;
-            
+
             unsigned j_max = j_ref.max; if(j_max != uinf) ++j_max;
             ranges.set(j_ref.min, j_max);
         }
-        
+
         /* For each of the combined ranges, find each element
          * that belongs to this particular group. */
-        
+
         bool changed = false;
         for(rangeset<unsigned>::const_iterator
             ri = ranges.begin(); ri != ranges.end(); ++ri)
@@ -377,26 +375,26 @@ redo_combine:
             for(choices::iterator jnext,j=tree.begin(); j!=tree.end(); j=jnext)
             {
                 jnext=j; ++jnext;
-                
+
                 if(j->size() != 1)continue;
-                
+
                 item& j_ref = *j->begin();
                 if(!i_ref.is_equal(j_ref)) continue;
-                
+
                 /* If this item is entirely swallowed by
                  * this particular range, assimilate it
                  */
-                
+
                 if(j_ref.min >= r_min && j_ref.max <= r_max)
                 {
                     found_something = true;
-                    
+
                     if(first)
                     {
                         first = false;
                         if(j_ref.min == r_min
                         && j_ref.max == r_max) { continue; /* nothing changed */ }
-                        
+
                         /* Update the range and set changed-flag */
                         j_ref.min = r_min;
                         j_ref.max = r_max;
@@ -410,7 +408,7 @@ redo_combine:
                     }
                 }
             }
-            
+
             if(r_min == 0 && found_something)
             {
                 // Then we may delete zero-length sequences
@@ -434,26 +432,26 @@ redo_combine:
 static bool CombineTree(choices& tree)
 {
     // (abc | dbc)   ->   ((a|d)bc)  -> [ad]bc
-    
+
     // (abc | dbc | koo) -> ((a|d)bc | koo)
-    
+
     // (abde | abcd | akoo) -> a(bde|bcd|koo) -> a(b(de|cd)|koo)
-    
+
     // axc | ayc | azc -> a(x|y|z)c
-    
+
     // (aXe | bXf | cXg)  NOT   [abc]X[efg] because cXe is not allowed.
-    
+
     // (abc | abd | abe)
     //  -> (a(bc|bd)) | abe
     //  -> a(bc|bd|be) -> (a(b(c|d|e))) -> (a(b([cde]))) -> ab[c-e]
-    
+
     // (aab | ab) -> a(ab|b) -> a(a|)b
     // a{1,2}b
-    
+
     // Combine those that have common ending
     for(choices::iterator i=tree.begin(); i!=tree.end(); ++i)
     {
-        list<choices::iterator> com;
+        std::list<choices::iterator> com;
         com.push_back(i);
         for(choices::iterator j=i; ++j!=tree.end(); )
         {
@@ -463,14 +461,14 @@ static bool CombineTree(choices& tree)
         {
             sequence rep = CopySequenceFromEnd(*i, 1); // Copy the common part
             choices subchoice;
-            
+
             bool has_empty = false;
-            for(list<choices::iterator>::iterator
+            for(std::list<choices::iterator>::iterator
                 k = com.begin(); k != com.end(); ++k)
             {
                 choices::iterator& ki = *k;
                 sequence& kik = *ki;
-                
+
                 RemoveSequenceFromEnd(kik, 1); // Remove the common part
                 if(kik.empty())
                     has_empty = true;
@@ -491,13 +489,13 @@ static bool CombineTree(choices& tree)
             return true;
         }
     }
-    
+
     // Combine those that have common beginning
     // This loop is equal to the previous, except
     // that Begin/begin/back and End/end/front are swapped.
     for(choices::iterator i=tree.begin(); i!=tree.end(); ++i)
     {
-        list<choices::iterator> com;
+        std::list<choices::iterator> com;
         com.push_back(i);
         for(choices::iterator j=i; ++j!=tree.end(); )
         {
@@ -508,12 +506,12 @@ static bool CombineTree(choices& tree)
             sequence rep = CopySequenceFromBegin(*i, 1);
             choices subchoice;
             bool has_empty = false;
-            for(list<choices::iterator>::iterator
+            for(std::list<choices::iterator>::iterator
                 k = com.begin(); k != com.end(); ++k)
             {
                 choices::iterator& ki = *k;
                 sequence& kik = *ki;
-                
+
                 RemoveSequenceFromBegin(kik, 1);
                 if(kik.empty())
                     has_empty = true;
@@ -538,18 +536,18 @@ static bool CombineTree(choices& tree)
 }
 
 static void OptimizeTree(choices& tree)
-{   
+{
     for(;;)
     {
         for(choices::iterator i=tree.begin(); i!=tree.end(); ++i)
             OptimizeSequence(*i);
-        
+
         FlattenTree(tree);
         CharsetCombineTree(tree);
 
         bool changed = CombineTree(tree) || CountingCombineTree(tree);
         if(!changed) break;
-        
+
         FlattenTree(tree);
     }
 
@@ -562,21 +560,21 @@ void item::Optimize()
     if(tree)
     {
         OptimizeTree(*tree);
-        
+
         // Convert (x) to x
         // Convert (x{5,7}) to x{5,7}
         // Convert (x){5,7} to x{5,7}
         // Not convert (x{2}){3}
-        
+
         // Do convert (x{0,n}){m} to x{0,n*m}
-        
+
         if(tree->size() == 1)
         {
             const sequence& seq = *tree->begin();
             if(seq.size() == 1)
             {
                 const item& it = seq[0];
-                
+
                 if(min==1 && max==1)
                 {
                     choices* tmp = tree;
@@ -721,7 +719,7 @@ static const charset& GetCntrlMask()
     return data.result;
 }
 
-static const charset ParseEscape(const string& s, unsigned& pos)
+static const charset ParseEscape(const std::string& s, unsigned& pos)
 {
     unsigned b=s.size();
     if(pos+1 < b) ++pos;
@@ -772,14 +770,14 @@ static const charset ParseEscape(const string& s, unsigned& pos)
     }
 }
 
-static const charset ParseCharSet(const string& s, unsigned& pos)
+static const charset ParseCharSet(const std::string& s, unsigned& pos)
 {
     unsigned b=s.size();
     charset result;
     bool negative=false, begin=true, range_ok=false;
     bool was_range = false;
     charset prev;
-    
+
     while(++pos < b)
     {
         charset key;
@@ -842,7 +840,7 @@ static const charset ParseCharSet(const string& s, unsigned& pos)
                 {
                     unsigned c1 = prev._Find_first();
                     unsigned c2 = key._Find_first();
-                    if(c1 > c2) swap(c1, c2);
+                    if(c1 > c2) std::swap(c1, c2);
                     for(unsigned c=c1; c<=c2; ++c) key.set(c);
                     range_ok=false;
                     was_range=false;
@@ -862,14 +860,14 @@ static const charset ParseCharSet(const string& s, unsigned& pos)
     return result;
 }
 
-static void ParseCount(const string& s, unsigned& pos, unsigned& min, unsigned& max)
+static void ParseCount(const std::string& s, unsigned& pos, unsigned& min, unsigned& max)
 {
     unsigned b=s.size();
-    
+
     unsigned value=0;
     unsigned index=0;
     bool has_value=false;
-    
+
     while(pos+1 < b)
     {
         char c = s[++pos];
@@ -897,16 +895,16 @@ static void ParseCount(const string& s, unsigned& pos, unsigned& min, unsigned& 
     throw "Unmatched '{' - needs '}'"; // error
 }
 
-static const choices Parse(const string& s, unsigned& pos)
+static const choices Parse(const std::string& s, unsigned& pos)
 {
     unsigned b=s.size();
-    
+
     bool count_ok = false;
     choices result;
     sequence seq;
-    
+
     bool has_empty = false;
-    
+
     for(; pos < b; ++pos)
     {
         charset key;
@@ -1013,9 +1011,9 @@ static const choices Parse(const string& s, unsigned& pos)
             {
                 unsigned n=0;
                 unsigned m=uinf;
-                
+
                 ParseCount(s, pos, n,m);
-                
+
                 if(count_ok)
                 {
                     regexopt_item& ch = seq.back();
@@ -1034,7 +1032,7 @@ static const choices Parse(const string& s, unsigned& pos)
                 break;
             }
             case '$': // only string end
-            {  
+            {
                 throw "string-end '$' not handled, sorry";
                 break;
             }
@@ -1058,7 +1056,7 @@ fin:
     return result;
 }
 
-static const string EscapeChar(unsigned char c)
+static const std::string EscapeChar(unsigned char c)
 {
     if(c == '\n') return "\\n";
     if(c == '\r') return "\\r";
@@ -1067,12 +1065,12 @@ static const string EscapeChar(unsigned char c)
     if(c == '\f') return "\\f";
     if(c == '\a') return "\\a";
     if(c ==  27)  return "\\e";
-    if(c == '\\') return string("\\") + (char)c;
-    if(c < 32) return string("\\c") + (char)(c+64);
-    if(c >= 0x20 && c <= 0x7E) { string tmp; tmp += c; return tmp; }
-    if(c >= 0xA0 && c <= 0xFF) { string tmp; tmp += c; return tmp; }
+    if(c == '\\') return std::string("\\") + (char)c;
+    if(c < 32) return std::string("\\c") + (char)(c+64);
+    if(c >= 0x20 && c <= 0x7E   ) { return std::string(1,char(c)); }
+    if(c >= 0xA0/*&& c <= 0xFF*/) { return std::string(1,char(c)); }
     char Buf[64];
-    sprintf(Buf, "\\%03o", c);
+    std::sprintf(Buf, "\\%03o", c);
     return Buf;
 }
 
@@ -1092,14 +1090,14 @@ static void DumpKey(std::ostream& out, const charset& s)
         }
     }
 
-    string result[2];
+    std::string result[2];
     unsigned size[2];
     for(unsigned flip=0; flip<2; ++flip)
     {
-        string sets;
+        std::string sets;
         unsigned n=0;
         bool need_set=false;
-        
+
         charset tmp=s;
         if(flip)
         {
@@ -1110,11 +1108,29 @@ static void DumpKey(std::ostream& out, const charset& s)
         bool has_circumflex=false;
         bool has_rightbracket=false;
 
+        // Put dash ('-') first,
+        // unless
+        // - It is part of a range
+        // - One of these sets is included (which include '-')
+        //       ascii, graph, print, punct.
+        if(tmp['-']
+        && (!tmp['-'-1] || !tmp['-'+1])
+        && !((tmp|GetAsciiMask()) == tmp)
+        && !((tmp|GetGraphMask()) == tmp)
+        && !((tmp|GetPrintMask()) == tmp)
+        && !((tmp|GetPunctMask()) == tmp)
+          )
+        {
+            //if(n) sets += '\\';
+            sets += '-'; ++n;
+            tmp.reset('-');
+        }
+
     #if 1
         if((tmp|GetAsciiMask()) == tmp) { ++n;sets += "[:ascii:]"; tmp &= ~GetAsciiMask(); need_set=true; }
         if((tmp|GetPrintMask()) == tmp) { ++n;sets += "[:print:]"; tmp &= ~GetPrintMask(); need_set=true; }
         if((tmp|GetGraphMask()) == tmp) { ++n;sets += "[:graph:]"; tmp &= ~GetGraphMask(); need_set=true; }
-        
+
         if((tmp|GetWordMask()) == tmp)  { ++n;sets += "\\w"; tmp &= ~GetWordMask(); }
         if((tmp|GetAlnumMask()) == tmp) { ++n;sets += "[:alnum:]"; tmp &= ~GetAlnumMask(); need_set=true; }
     /**/
@@ -1131,13 +1147,17 @@ static void DumpKey(std::ostream& out, const charset& s)
         if((tmp|GetSpaceMask()) == tmp) { ++n;sets += "[:space:]"; tmp &= ~GetSpaceMask(); }
         if((tmp|GetPSpaceMask()) == tmp){ ++n;sets += "\\s"; tmp &= ~GetPSpaceMask(); }
     #endif
-        
-        if(tmp['-'] && (!tmp['-'-1] || !tmp['-'+1]))
+
+        // Second check for '-'. This should be unnecessary.
+        if(tmp['-']
+        && (!tmp['-'-1] || !tmp['-'+1])
+          )
         {
-            //if(n) sets += '\\';
+            if(n) sets += '\\';
             sets += '-'; ++n;
             tmp.reset('-');
         }
+
         if(tmp[']'] && (!tmp[']'-1] || !tmp[']'+1]))
         {
             tmp.reset(']');
@@ -1158,11 +1178,11 @@ static void DumpKey(std::ostream& out, const charset& s)
                     if(lower < 256)
                     {
                         n += prev-lower+1;
-                        
+
                         sets += EscapeChar(lower);
-                        
+
                         if(prev > lower+1) { sets += '-'; need_set = true; }
-                        
+
                         if(lower != prev)
                         {
                             sets += EscapeChar(prev);
@@ -1172,7 +1192,7 @@ static void DumpKey(std::ostream& out, const charset& s)
                 }
                 prev=a;
             }
-        
+
         if(has_circumflex)
         {
             sets += '^';
@@ -1184,16 +1204,16 @@ static void DumpKey(std::ostream& out, const charset& s)
             else sets += "\\]";
             ++n;
         }
-        
+
         if(need_set || n > 1) result[flip] += '[';
         result[flip] += sets;
         if(need_set || n > 1) result[flip] += ']';
         size[flip] = n;
     }
-    
+
     if(size[0]==0 && size[1] > 0) size[0] = 255;
     if(size[1]==0 && size[0] > 0) size[1] = 255;
-    
+
     if(size[0] <= size[1])
         out << result[0];
     else
@@ -1202,16 +1222,16 @@ static void DumpKey(std::ostream& out, const charset& s)
 
 static void DumpSequence(std::ostream& out, const sequence& s)
 {
-    for(vector<item>::const_iterator
+    for(std::vector<item>::const_iterator
         i = s.begin(); i != s.end(); ++i)
     {
         ParensFlag need_parens = (i->min!=1 || i->max!=1) ? yes_parens : automatic;
-        
+
         if(i->tree)
             DumpTree(out, *i->tree, need_parens);
         else
             DumpKey(out, i->ch);
-        
+
         if(i->min != 1 || i->max != 1)
         {
             if(i->max == uinf)
@@ -1251,7 +1271,7 @@ static void DumpTree(std::ostream& out, const choices& c, ParensFlag need_parens
 {
     if(need_parens == automatic)
         need_parens = (ParensFlag)(c.size() != 1);
-    
+
     if(need_parens) out << "(?:";
 
     bool first=true;
@@ -1269,20 +1289,20 @@ void DumpRegexOptTree(std::ostream& out, const regexopt_choices& tree)
     DumpTree(out, tree, (ParensFlag)false);
 }
 
-static void TestSet(const string& s)
+static void TestSet(const std::string& s)
 {
     unsigned a=0;
     charset tmp = ParseCharSet("[" + s + "]", a);
-    
-    cout << "[" << s << "](" << a << "):";
-    
+
+    std::cout << "[" << s << "](" << a << "):";
+
     for(unsigned a=0; a<256; ++a)
     {
         if(tmp[a])
-            cout << (char)a;
+            std::cout << (char)a;
     }
-    
-    cout << endl;
+
+    std::cout << std::endl;
 }
 
 const regexopt_choices RegexOptParse(const std::string& s, unsigned& pos)
