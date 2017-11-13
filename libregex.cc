@@ -18,6 +18,18 @@ typedef regexopt_item item;
 
 #include "rangeset.hh"
 
+template<std::size_t N>
+static unsigned FindFirst(const std::bitset<N>& set)
+{
+    #ifdef _GLIBCXX_BITSET
+    return set._Find_first();
+    #endif
+    for(unsigned p=0; p<N; ++p)
+        if(set.test(p))
+            return p;
+    return N;
+}
+
 bool regexopt_item::is_equal(const regexopt_item& b) const
 {
     if(greedy != b.greedy) return false;
@@ -838,8 +850,8 @@ static const charset ParseCharSet(const std::string& s, unsigned& pos)
                 }
                 if(was_range)
                 {
-                    unsigned c1 = prev._Find_first();
-                    unsigned c2 = key._Find_first();
+                    unsigned c1 = FindFirst(prev);
+                    unsigned c2 = FindFirst(key);
                     if(c1 > c2) std::swap(c1, c2);
                     for(unsigned c=c1; c<=c2; ++c) key.set(c);
                     range_ok=false;
@@ -1079,7 +1091,7 @@ static void DumpKey(std::ostream& out, const charset& s)
     if(s == GetDotMask()) { out << '.'; return; }
     if(s.count() == 1)
     {
-        char c = s._Find_first();
+        char c = FindFirst(s);
         switch(c)
         {
             case '?': case '(': case ')': case '|':
@@ -1163,7 +1175,7 @@ static void DumpKey(std::ostream& out, const charset& s)
             tmp.reset(']');
             has_rightbracket=true;
         }
-        if(tmp['^'] && tmp._Find_first() == '^' && sets.empty())
+        if(tmp['^'] && FindFirst(tmp) == '^' && sets.empty())
         {
             tmp.reset('^');
             has_circumflex=true;

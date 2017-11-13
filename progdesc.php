@@ -3,6 +3,7 @@
 
 $title = 'Perl-compatible regular expression optimizer';
 $progname = 'regex-opt';
+$git = 'git://bisqwit.iki.fi/regex-opt.git';
 
 $text = array(
    '1. Purpose' => "

@@ -1,7 +1,7 @@
 # This is Bisqwit's generic depfun.mak, included from Makefile.
 # The same file is used in many different projects.
 #
-# depfun.mak version 1.6.2
+# depfun.mak version 1.6.6
 #
 # Required vars:
 #
@@ -27,7 +27,6 @@
 #                       but without dependency checking
 
 
-# Note: This requires perl. FIXME change it to sed
 .depend: ${ARCHFILES}
 	@echo "Checking dependencies..."
 	@rm -f $@.tmp
@@ -39,7 +38,7 @@
 	       then \
 	       cd "$$n";\
 	       ${CPP} ${CPPFLAGS} -MM -MG "$$dir""$$s" |\
-	        perl -pe "s|^([^ ])|$$dir\\1|" \
+	        sed -E "s|^([^ ])|$$dir\\1|" \
 	         > $@."$$s";\
 	    fi&done; \
 	    cd "$$n"; \
@@ -152,8 +151,8 @@ UNUSED_archpak: ${ARCHFILES} ;
 	@make arch_finish_pak
 
 arch_finish_pak:	
-	- if [ "${NOBZIP2ARCHIVES}" = "" ]; then bzip2 -9 >${ARCHDIR}${ARCHNAME}.tar.bz2 < ${ARCHDIR}${ARCHNAME}.tar; fi
-	if [ "${NOGZIPARCHIVES}" = "" ]; then gzip -f9 ${ARCHDIR}${ARCHNAME}.tar; wine /usr/local/bin/DeflOpt.exe ${ARCHDIR}${ARCHNAME}.tar.gz ; fi
+	- if [ "${NOXZARCHIVES}" = "" ]; then xz --best >${ARCHDIR}${ARCHNAME}.tar.xz < ${ARCHDIR}${ARCHNAME}.tar; fi
+	if [ "${NOGZIPARCHIVES}" = "" ]; then gzip -f9 ${ARCHDIR}${ARCHNAME}.tar; DeflOpt ${ARCHDIR}${ARCHNAME}.tar.gz || true; fi
 	rm -f ${ARCHDIR}${ARCHNAME}.tar
 
 # Makes the packages of various types...
@@ -161,15 +160,15 @@ UNUSED_pak: archpak ;
 	if [ -f makediff.php ]; then php -q makediff.php ${ARCHNAME} ${ARCHDIR} 1; fi
 
 omabin_link${DEPFUN_OMABIN}:
-	- @rm -f /WWW/src/arch/${ARCHNAME}.tar.{bz2,gz}
-	- ln -f ${ARCHDIR}${ARCHNAME}.tar.{bz2,gz} /WWW/src/arch/
+	- @rm -f /WWW/src/arch/${ARCHNAME}.tar.{xz,gz}
+	- ln -f ${ARCHDIR}${ARCHNAME}.tar.{xz,gz} /WWW/src/arch/
 	if [ -f progdesc.php ]; then cp -p --remove-destination progdesc.php /WWW/src/.desc-$(subst /,,$(dir $(subst -,/,$(ARCHNAME)))).php 2>/dev/null || cp -fp progdesc.php /WWW/src/.desc-$(subst /,,$(dir $(subst -,/,$(ARCHNAME)))).php; fi
 
 # This is Bisqwit's method to install the packages to web-server...
 UNUSED_omabin${DEPFUN_OMABIN}: archpak
 	if [ -f makediff.php ]; then php -q makediff.php ${ARCHNAME} ${ARCHDIR}; fi
-	#- @rm -f /WWW/src/arch/${ARCHNAME}.{zip,rar,tar.{bz2,gz}}
-	#- ln -f ${ARCHDIR}${ARCHNAME}.{zip,rar,tar.{bz2,gz}} /WWW/src/arch/
+	#- @rm -f /WWW/src/arch/${ARCHNAME}.{zip,rar,tar.{xz,gz}}
+	#- ln -f ${ARCHDIR}${ARCHNAME}.{zip,rar,tar.{xz,gz}} /WWW/src/arch/
 	@make omabin_link${DEPFUN_OMABIN}
 
 install${DEPFUN_INSTALL}: ${INSTALLPROGS}
@@ -195,3 +194,11 @@ uninstall${DEPFUN_INSTALL} deinstall${DEPFUN_INSTALL}:
 	install${DEPFUN_INSTALL} \
 	deinstall${DEPFUN_INSTALL} \
 	uninstall${DEPFUN_INSTALL}
+
+git_undo_release:
+	- git stash
+	git checkout release
+	git reset --hard release^
+	git checkout master
+	git reset --soft HEAD^
+	- git stash pop

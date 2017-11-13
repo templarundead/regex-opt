@@ -7,7 +7,7 @@ int main(int argc, const char* const* argv)
     if(argc != 2)
     {
         std::cout
-        << "regex-opt "VERSION" - Copyright (C) 1992,2006 Bisqwit (http://iki.fi/bisqwit/)\n"
+        << "regex-opt " VERSION " - Copyright (C) 1992,2006 Bisqwit (http://iki.fi/bisqwit/)\n"
            "This program is distributed under the terms of the General Public License.\n"
            "\n"
            "Usage: regex-opt <regexp>\n";;

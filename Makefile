@@ -10,15 +10,20 @@ include Makefile.sets
 #HOST=
 #LDFLAGS += -pthread 
 
+#CXX=$(HOST)clang++ -stdlib=libc++
+#CC=$(HOST)gcc
+#CPP=$(HOST)gcc
 CXX=$(HOST)g++
 CC=$(HOST)gcc
 CPP=$(HOST)gcc
+
+CXXFLAGS += -std=c++1y
 
 OPTIM=-O3
 
 CPPFLAGS += -I.
 
-VERSION=1.2.3
+VERSION=1.2.4
 
 ARCHFILES=COPYING Makefile.sets progdesc.php \
           main.cc \
