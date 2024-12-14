@@ -19,7 +19,7 @@ CPP=$(HOST)gcc
 
 CXXFLAGS += -std=c++1y
 
-OPTIM=-O3
+OPTIM=-Os
 
 CPPFLAGS += -I.
 
