@@ -15,8 +15,8 @@ LDFLAGS=-static # for statically building
 #CC=$(HOST)gcc
 #CPP=$(HOST)gcc
 CXX=$(HOST)g++
-CC=$(HOST)gcc
-CPP=$(HOST)gcc
+#CC=$(HOST)gcc
+#CPP=$(HOST)gcc
 
 CXXFLAGS += -std=c++1y
 OPTIM=-Os #  Optimize for size (like clang -Os)
@@ -45,8 +45,8 @@ INSTALL=install
 all: $(PROGS)
 
 regex-opt: main.o libregex.a
-	$(CXX) $(CXXFLAGS) $(OPTIM) -g -o $@ $^ \
-		$(LDFLAGS)
+	$(CXX) $(OPTIM) $(CXXFLAGS) -g -o $@ $^ \
+		$(LDFLAGS) 
 
 libregex.a: libregex.o
 	ar -rc $@ $^
