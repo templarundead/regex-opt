@@ -8,7 +8,8 @@ include Makefile.sets
 
 # Building for native:
 #HOST=
-#LDFLAGS += -pthread 
+#LDFLAGS += -pthread
+LDFLAGS=-static
 
 #CXX=$(HOST)clang++ -stdlib=libc++
 #CC=$(HOST)gcc
@@ -18,11 +19,8 @@ CC=$(HOST)gcc
 CPP=$(HOST)gcc
 
 CXXFLAGS += -std=c++1y
-
 OPTIM=-O3
-
 CPPFLAGS += -I.
-
 VERSION=1.2.4
 
 ARCHFILES=COPYING Makefile.sets progdesc.php \
