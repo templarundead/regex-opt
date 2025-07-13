@@ -10,10 +10,10 @@ include Makefile.sets
 #HOST=
 #LDFLAGS += -pthread 
 
-CXX=$(HOST)clang++ -stdlib=libc++
+#CXX=$(HOST)clang++ -stdlib=libc++
 #CC=$(HOST)gcc
 #CPP=$(HOST)gcc
-#CXX=$(HOST)g++
+CXX=$(HOST)g++
 CC=$(HOST)gcc
 CPP=$(HOST)gcc
 
