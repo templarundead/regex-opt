@@ -13,7 +13,7 @@ CWARNINGS=-Wall -W -pipe -g \
 #   -Wtraditional  -fmessage-length=128
 
 CXXFLAGS=-pedantic -ffast-math $(CWARNINGS)
-#CFLAGS=-O3 -fomit-frame-pointer -ffast-math $(CWARNINGS)
+CFLAGS=-O3 -fomit-frame-pointer -ffast-math $(CWARNINGS)
 CFLAGS=-O -g $(CWARNINGS)
 
 CPPFLAGS=-DVERSION=\"$(VERSION)\" \
