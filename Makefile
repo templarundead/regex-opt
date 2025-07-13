@@ -18,7 +18,7 @@ CXX=$(HOST)g++
 #CC=$(HOST)gcc
 #CPP=$(HOST)gcc
 
-CXXFLAGS +="-std=c++1y -Os"
+CXXFLAGS +="-std=c++1y"
 #OPTIM=-Os #  Optimize for size (like clang -Os)
 #OPTIM=-O3  # Optimize for speed (like clang -O3)
 CPPFLAGS += -I.
