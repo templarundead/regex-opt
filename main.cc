@@ -6,9 +6,9 @@ int main(int argc, const char* const* argv)
     if(argc != 2)
     {
         std::cout
-        << "regex-opt — Copyright © 1992, 2006 Bisqwit (http://iki.fi/bisqwit/)\n"
-           "This program is distributed under the terms of the General Public License.\n"
-           "\033[0;38;5;103musage:\033[0m \033[0;38;5;65mregex-opt\033[0m \033[0;38;5;101m<regexp>\033[0m\n";;
+        << "regex-opt " VERSION " — Copyright © 1992, 2006 Bisqwit (http://iki.fi/bisqwit/)\n"
+           "This program is distributed under the terms of the General Public License.\n\n"
+           "\033[0;38;5;103musage:\033[0m \033[0;38;5;65mregex-opt\033[0m \033[0;38;5;101m<regexp>\033[0m\n";
         return 0;
     }
     try {
