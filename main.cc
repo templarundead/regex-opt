@@ -10,7 +10,7 @@ int main(int argc, const char* const* argv)
         << "regex-opt " VERSION " - Copyright (C) 1992,2006 Bisqwit (http://iki.fi/bisqwit/)\n"
            "This program is distributed under the terms of the General Public License.\n"
            "\n"
-           "Usage: regex-opt <regexp>\n";;
+           "\033[0;38;5;103musage:\033[0m \033[0;38;5;101mregex-opt\033[0m \033[0;38;5;65m<regexp>\033[0m\n";;
         return 0;
     }
     try {
