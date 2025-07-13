@@ -8,7 +8,7 @@ include Makefile.sets
 
 # Building for native:
 #HOST=
-LDFLAGS += -pthread 
+#LDFLAGS += -pthread 
 
 CXX=$(HOST)clang++ -stdlib=libc++
 #CC=$(HOST)gcc
