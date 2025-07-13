@@ -18,7 +18,7 @@ CXX=$(HOST)g++
 #CC=$(HOST)gcc
 #CPP=$(HOST)gcc
 
-CXXFLAGS += -std=c++1y
+CXXFLAGS += -std=c++1y -Os
 OPTIM=-Os #  Optimize for size (like clang -Os)
 #OPTIM=-O3  # Optimize for speed (like clang -O3)
 CPPFLAGS += -I.
@@ -45,7 +45,7 @@ INSTALL=install
 all: $(PROGS)
 
 regex-opt: main.o libregex.a
-	$(CXX) $(OPTIM) $(CXXFLAGS) -g -o $@ $^ \
+	$(CXX) $(CXXFLAGS) -g -o $@ $^ \
 		$(LDFLAGS) 
 
 libregex.a: libregex.o
