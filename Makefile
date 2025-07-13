@@ -9,7 +9,7 @@ include Makefile.sets
 # Building for native:
 #HOST=
 #LDFLAGS += -pthread
-LDFLAGS=-static # for statically building
+LDFLAGS="-static" # for statically building
 
 #CXX=$(HOST)clang++ -stdlib=libc++
 #CC=$(HOST)gcc
@@ -18,8 +18,8 @@ CXX=$(HOST)g++
 #CC=$(HOST)gcc
 #CPP=$(HOST)gcc
 
-CXXFLAGS += -std=c++1y -Os
-OPTIM=-Os #  Optimize for size (like clang -Os)
+CXXFLAGS +="-std=c++1y -Os"
+#OPTIM=-Os #  Optimize for size (like clang -Os)
 #OPTIM=-O3  # Optimize for speed (like clang -O3)
 CPPFLAGS += -I.
 VERSION=1.2.4
