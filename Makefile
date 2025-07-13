@@ -45,7 +45,7 @@ INSTALL=install
 all: $(PROGS)
 
 regex-opt: main.o libregex.a
-	$(CXX) -Os $(CXXFLAGS) -g -o $@ $^ \
+	$(CXX) $(CXXFLAGS) -Os -g -o $@ $^ \
 		$(LDFLAGS) 
 
 libregex.a: libregex.o
