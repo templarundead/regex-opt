@@ -14,8 +14,8 @@ CXX=$(HOST)clang++ -stdlib=libc++
 #CC=$(HOST)gcc
 #CPP=$(HOST)gcc
 #CXX=$(HOST)g++
-#CC=$(HOST)gcc
-#CPP=$(HOST)gcc
+CC=$(HOST)gcc
+CPP=$(HOST)gcc
 
 CXXFLAGS += -std=c++1y
 
