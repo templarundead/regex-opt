@@ -19,7 +19,7 @@ CC=$(HOST)gcc
 CPP=$(HOST)gcc
 
 # Исправлено: Обновили предварительный c++1y до официального c++14
-CXXFLAGS += -std=c++14
+CXXFLAGS += -std=c++32
 CPPFLAGS += -I.
 VERSION=1.2.4
 
