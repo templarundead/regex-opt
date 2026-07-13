@@ -2,24 +2,25 @@ INSTALL=install
 CC=gcc
 CXX=g++
 
-CPP=$(CC)
-#LDFLAGS=-g
-#LDLIBS=-lstdc++
-
-CWARNINGS=-Wall -W -pipe -g \
+# --- Базовые предупреждения (общие для C и C++) ---
+CWARNINGS=-Wall -W -pipe \
     -Wundef \
-    -Wcast-qual -Wcast-align -Wwrite-strings \
+    -Wcast-qual -Wcast-align \
     -Winline
-#   -Wtraditional  -fmessage-length=128
 
-CXXFLAGS=-pedantic -ffast-math $(CWARNINGS)
-CFLAGS=-O3 -fomit-frame-pointer -ffast-math -mcpu=cortex-a76.cortex-a55 -ffunction-sections -fdata-sections -Wno-stringop-overflow -pipe $(CWARNINGS)
-#CFLAGS=-O -g $(CWARNINGS)
+# === ВАРИАНТ 1: ДЛЯ РАЗРАБОТКИ (Быстрая сборка + Отладка) ===
+# CFLAGS = -O0 -g $(CWARNINGS)
+# CXXFLAGS = -O0 -g -pedantic $(CWARNINGS)
 
+# === ВАРИАНТ 2: ДЛЯ ВЫПУСКА (Максимальная скорость) ===
+# Включаем обратно оптимизацию под ваш ARM процессор
+OPT_FLAGS = -O3 -ffast-math -mcpu=cortex-a76.cortex-a55 -ffunction-sections -fdata-sections
+CFLAGS = $(OPT_FLAGS) -fomit-frame-pointer -Wno-stringop-overflow $(CWARNINGS)
+CXXFLAGS = $(OPT_FLAGS) -pedantic $(CWARNINGS)
+
+# --- Настройки путей и макросов ---
 CPPFLAGS=-DVERSION=\"$(VERSION)\" \
          -DCONFIG=\"$(CFGDIR)/$(CFGFILE)\" \
          -DBINDIR=\"$(BINDIR)\" $(DEFS)
 
 DEPFUN_INSTALL=bin
-
-# -Wredundant-decls -- glibc activates this a lot, so we better not use it

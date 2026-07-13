@@ -9,18 +9,17 @@ include Makefile.sets
 # Building for native:
 #HOST=
 #LDFLAGS += -pthread
+
+# Исправлено: Собрали все флаги линковки вместе.
+# Убедитесь, что в системе установлен пакет 'mold'
 LDFLAGS=-static -static-libgcc -Wl,--gc-sections -fuse-ld=mold
 
-#CXX=$(HOST)clang++ -stdlib=libc++
-#CC=$(HOST)gcc
-#CPP=$(HOST)gcc
 CXX=$(HOST)g++
 CC=$(HOST)gcc
 CPP=$(HOST)gcc
 
-CXXFLAGS += -std=c++1y
-#OPTIM=-Os #  Optimize for size (like clang -Os)
-#OPTIM=-O3  # Optimize for speed (like clang -O3)
+# Исправлено: Обновили предварительный c++1y до официального c++14
+CXXFLAGS += -std=c++14
 CPPFLAGS += -I.
 VERSION=1.2.4
 
@@ -38,25 +37,24 @@ ARCHNAME=regex-opt-$(VERSION)
 ARCHDIR=archives/
 
 PROGS=regex-opt
-
 INSTALLPROGS=regex-opt
 INSTALL=install
 
 all: $(PROGS)
 
+# Исправлено: Поставили LDFLAGS перед файлами объектов ($^),
+# чтобы избежать ошибок линковки при использовании -static
 regex-opt: main.o libregex.a
-	$(CXX) $(CXXFLAGS) -g -o $@ $^ \
-		$(LDFLAGS)
+	$(CXX) $(CXXFLAGS) -g $(LDFLAGS) -o $@ $^
 
 libregex.a: libregex.o
 	ar -rc $@ $^
 
 clean: FORCE
-	rm -f *.o $(PROGS)
+	rm -f *.o $(PROGS) libregex.a
 distclean: clean
 	rm -f *~ .depend
 realclean: distclean
-
 
 include depfun.mak
 
