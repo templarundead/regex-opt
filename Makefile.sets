@@ -3,7 +3,7 @@ CC=gcc
 CXX=g++
 
 CPP=$(CC)
-LDFLAGS=-g
+#LDFLAGS=-g
 #LDLIBS=-lstdc++
 
 CWARNINGS=-Wall -W -pipe -g \
