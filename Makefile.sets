@@ -14,7 +14,7 @@ CWARNINGS=-Wall -W -pipe \
 
 # === ВАРИАНТ 2: ДЛЯ ВЫПУСКА (Максимальная скорость) ===
 # Включаем обратно оптимизацию под ваш ARM процессор
-OPT_FLAGS = -O3 -ffast-math -flto=auto -mcpu=cortex-a76.cortex-a55 -ffunction-sections -fdata-sections
+OPT_FLAGS = -O3 -ffast-math -flto=auto -mcpu=cortex-a76.cortex-a55 -ffunction-sections -fdata-sections -pipe
 CFLAGS = $(OPT_FLAGS) -fomit-frame-pointer -Wno-stringop-overflow $(CWARNINGS)
 CXXFLAGS = $(OPT_FLAGS) -pedantic $(CWARNINGS)
 
